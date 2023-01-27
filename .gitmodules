@@ -1,0 +1,3 @@
+[submodule "extern/mlib"]
+	path = extern/mlib
+	url = https://github.com/P-p-H-d/mlib
