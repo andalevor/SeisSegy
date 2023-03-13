@@ -61,26 +61,26 @@ void seis_common_add_stanza(SeisCommonSegy *com, char* buf)
 	string_clear(tmp);
 }
 
-size_t seis_common_get_text_headers_num(SeisCommonSegy *com)
+size_t seis_common_get_text_headers_num(SeisCommonSegy const*com)
 {
 	SeisCommonSegyPrivate_t priv = (SeisCommonSegyPrivate_t)com;
 	return str_arr_size(priv->text_hdrs);
 }
 
-char const* seis_common_get_text_header(SeisCommonSegy *com, size_t idx)
+char const* seis_common_get_text_header(SeisCommonSegy const*com, size_t idx)
 {
 	SeisCommonSegyPrivate_t priv = (SeisCommonSegyPrivate_t)com;
 	string_t *tmp = str_arr_get(priv->text_hdrs, idx);
 	return string_get_cstr(*tmp);
 }
 
-size_t seis_common_get_stanzas_num(SeisCommonSegy *com)
+size_t seis_common_get_stanzas_num(SeisCommonSegy const*com)
 {
 	SeisCommonSegyPrivate_t priv = (SeisCommonSegyPrivate_t)com;
 	return str_arr_size(priv->end_stanzas);
 }
 
-char const* seis_common_get_stanza(SeisCommonSegy *com, size_t idx)
+char const* seis_common_get_stanza(SeisCommonSegy const*com, size_t idx)
 {
 	SeisCommonSegyPrivate_t priv = (SeisCommonSegyPrivate_t)com;
 	string_t *tmp = str_arr_get(priv->end_stanzas, idx);

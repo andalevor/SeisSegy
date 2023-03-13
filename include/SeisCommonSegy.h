@@ -138,7 +138,7 @@ void seis_common_add_stanza(SeisCommonSegy *com, char* buf);
  * \param com Pointer to SeisCommonSegy object.
  * \return number of text headers.
  */
-size_t seis_common_get_text_headers_num(SeisCommonSegy *com);
+size_t seis_common_get_text_headers_num(SeisCommonSegy const*com);
 
 /**
  * \fn seis_common_get_text_header
@@ -147,7 +147,7 @@ size_t seis_common_get_text_headers_num(SeisCommonSegy *com);
  * \prarm idx Index of desired text header from 0 to text_headers_num - 1.
  * \return Pointer to header. Should not be freed.
  */
-char const* seis_common_get_text_header(SeisCommonSegy *com, size_t idx);
+char const* seis_common_get_text_header(SeisCommonSegy const*com, size_t idx);
 
 /**
  * \fn seis_common_get_stanzas_num
@@ -155,7 +155,7 @@ char const* seis_common_get_text_header(SeisCommonSegy *com, size_t idx);
  * \param com Pointer to SeisCommonSegy object.
  * \return number of stanzas.
  */
-size_t seis_common_get_stanzas_num(SeisCommonSegy *com);
+size_t seis_common_get_stanzas_num(SeisCommonSegy const*com);
 
 /**
  * \fn seis_common_get_stanza
@@ -164,6 +164,6 @@ size_t seis_common_get_stanzas_num(SeisCommonSegy *com);
  * \prarm idx Index of desired end stanza from 0 to end_stanzas_num - 1.
  * \return Pointer to stanza. Should not be freed.
  */
-char const* seis_common_get_stanza(SeisCommonSegy *com, size_t idx);
+char const* seis_common_get_stanza(SeisCommonSegy const*com, size_t idx);
 
 #endif /* SEIS_COMMON_SEGY_H */

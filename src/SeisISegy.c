@@ -114,12 +114,12 @@ void seis_isegy_unref(SeisISegy *sgy)
 	}
 }
 
-bool seis_isegy_end_of_data(SeisISegy *sgy)
+bool seis_isegy_end_of_data(SeisISegy const*sgy)
 {
 	return sgy->end_of_data == sgy->curr_pos;
 }
 
-SeisSegyErr *seis_isegy_get_error(SeisISegy *sgy)
+SeisSegyErr const*seis_isegy_get_error(SeisISegy const*sgy)
 {
 	return &sgy->com->err;
 }
@@ -186,17 +186,17 @@ error:
 	return NULL;
 }
 
-SeisSegyBinHdr *seis_isegy_get_binary_header(SeisISegy *sgy)
+SeisSegyBinHdr const*seis_isegy_get_binary_header(SeisISegy const*sgy)
 {
 	return &sgy->com->bin_hdr;
 }
 
-size_t seis_isegy_get_text_headers_num(SeisISegy *sgy)
+size_t seis_isegy_get_text_headers_num(SeisISegy const*sgy)
 {
 	return seis_common_get_text_headers_num(sgy->com);
 }
 
-char const*seis_isegy_get_text_header(SeisISegy *sgy, size_t idx)
+char const*seis_isegy_get_text_header(SeisISegy const*sgy, size_t idx)
 {
 	return seis_common_get_text_header(sgy->com, idx);
 }
