@@ -1,29 +1,20 @@
-#include <SeisTrace.h>
 #include <assert.h>
+#include <SeisTrace.h>
 #include <float.h>
 #include <math.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "SeisSegy.h"
-#include "m-array.h"
-#include "m-string.h"
+#include <string.h>
+#include "SeisISegy.h"
+#include "SeisCommonSegy.h"
 
-ARRAY_DEF(str_arr, string_t)
-
-#define TEXT_HEADER_SIZE 3200
-#define BIN_HEADER_SIZE 400
-#define TRACE_HEADER_SIZE 240
 #define TRY(x) do { if (x) goto error; } while (0)
 
-struct SeisSegy {
-	str_arr_t text_hdrs, end_stanzas;
-	struct SeisSegyBinHdr bin_hdr;
-	FILE *file;
-	char mode, *trc_hdr_buf, *samp_buf, *hdr_buf;
-	long curr_pos, first_trace_pos, end_of_data, samp_per_tr;
-	int bytes_per_sample;
+struct SeisISegy {
+	SeisCommonSegy *com;
+	long curr_pos, first_trace_pos, end_of_data;
 	int8_t (*read_i8)(char const **buf);
 	uint8_t (*read_u8)(char const **buf);
 	int16_t (*read_i16)(char const **buf);
@@ -34,30 +25,34 @@ struct SeisSegy {
 	uint32_t (*read_u32)(char const **buf);
 	int64_t (*read_i64)(char const **buf);
 	uint64_t (*read_u64)(char const **buf);
-	double (*dbl_from_IEEE_float)(SeisSegy_t sgy, char const **buf);
-	double (*dbl_from_IEEE_double)(SeisSegy_t sgy, char const **buf);
-	double (*read_sample)(SeisSegy_t sgy, char const **buf);
-	SeisSegyErrCode (*read_trc_smpls)(SeisSegy_t sgy, SeisTraceHeader_t hdr,
-									  SeisTrace_t *trc);
-	struct SeisSegyErr err;
+	double (*dbl_from_IEEE_float)(SeisISegy *sgy, char const **buf);
+	double (*dbl_from_IEEE_double)(SeisISegy *sgy, char const **buf);
+	double (*read_sample)(SeisISegy *sgy, char const **buf);
+	SeisSegyErrCode (*read_trc_smpls)(SeisISegy *sgy, SeisTraceHeader *hdr,
+									  SeisTrace **trc);
+	SeisSegyErrCode (*skip_trc_smpls)(SeisISegy *sgy, SeisTraceHeader *hdr);
 	int rc;
 };
 
-static SeisSegyErrCode fill_from_file(SeisSegy_t sgy, char *buf, size_t num);
-static void 		   file_skip_bytes(SeisSegy_t sgy, size_t num);
-static SeisSegyErrCode open_file(SeisSegy_t sgy, char const *file_name);
-static SeisSegyErrCode read_text_header(SeisSegy_t sgy, str_arr_t arr, int num);
-static SeisSegyErrCode read_bin_header(SeisSegy_t sgy);
-static SeisSegyErrCode assign_raw_readers(SeisSegy_t sgy);
-static SeisSegyErrCode assign_sample_reader(SeisSegy_t sgy);
-static void            assign_bytes_per_sample(SeisSegy_t sgy);
-static SeisSegyErrCode read_ext_text_headers(SeisSegy_t sgy);
-static SeisSegyErrCode read_trailer_stanzas(SeisSegy_t sgy);
-static SeisSegyErrCode read_trc_smpls_fix(SeisSegy_t sgy, SeisTraceHeader_t hdr,
-										  SeisTrace_t *trc);
-static SeisSegyErrCode read_trc_smpls_var(SeisSegy_t sgy, SeisTraceHeader_t hdr,
-										  SeisTrace_t *trc);
-static SeisSegyErrCode read_trc_hdr(SeisSegy_t sgy, SeisTraceHeader_t hdr);
+static SeisSegyErrCode fill_from_file(SeisISegy *sgy, char *buf, size_t num);
+static void 		   file_skip_bytes(SeisISegy *sgy, size_t num);
+static SeisSegyErrCode read_text_header(SeisISegy *sgy,
+						void (*add_func)(SeisCommonSegy*, char*), int num);
+static SeisSegyErrCode read_bin_header(SeisISegy *sgy);
+static SeisSegyErrCode assign_raw_readers(SeisISegy *sgy);
+static SeisSegyErrCode assign_sample_reader(SeisISegy *sgy);
+static void            assign_bytes_per_sample(SeisISegy *sgy);
+static SeisSegyErrCode read_ext_text_headers(SeisISegy *sgy);
+static SeisSegyErrCode read_trailer_stanzas(SeisISegy *sgy);
+static SeisSegyErrCode read_trc_smpls_fix(SeisISegy *sgy,
+										  SeisTraceHeader *hdr,
+										  SeisTrace **trc);
+static SeisSegyErrCode read_trc_smpls_var(SeisISegy *sgy,
+										  SeisTraceHeader *hdr,
+										  SeisTrace **trc);
+static SeisSegyErrCode read_trc_hdr(SeisISegy *sgy, SeisTraceHeader *hdr);
+static SeisSegyErrCode skip_trc_smpls_fix(SeisISegy *sgy, SeisTraceHeader *hdr);
+static SeisSegyErrCode skip_trc_smpls_var(SeisISegy *sgy, SeisTraceHeader *hdr);
 
 static int8_t read_i8(char const **buf);
 static uint8_t read_u8(char const **buf);
@@ -77,246 +72,244 @@ static int32_t read_i32_sw(char const **buf);
 static uint32_t read_u32_sw(char const **buf);
 static int64_t read_i64_sw(char const **buf);
 static uint64_t read_u64_sw(char const **buf);
-static double dbl_from_IBM_float(SeisSegy_t sgy, char const **buf);
-static double dbl_from_IEEE_float(SeisSegy_t sgy, char const **buf);
-static double dbl_from_IEEE_double(SeisSegy_t sgy, char const **buf);
-static double dbl_from_IEEE_float_native(SeisSegy_t sgy,char const **buf);
-static double dbl_from_IEEE_double_native(SeisSegy_t sgy, char const **buf);
-static double dbl_from_i8(SeisSegy_t sgy, char const **buf);
-static double dbl_from_u8(SeisSegy_t sgy, char const **buf);
-static double dbl_from_i16(SeisSegy_t sgy, char const **buf);
-static double dbl_from_u16(SeisSegy_t sgy, char const **buf);
-static double dbl_from_i24(SeisSegy_t sgy, char const **buf);
-static double dbl_from_u24(SeisSegy_t sgy, char const **buf);
-static double dbl_from_i32(SeisSegy_t sgy, char const **buf);
-static double dbl_from_u32(SeisSegy_t sgy, char const **buf);
-static double dbl_from_i64(SeisSegy_t sgy, char const **buf);
-static double dbl_from_u64(SeisSegy_t sgy, char const **buf);
+static double dbl_from_IBM_float(SeisISegy *sgy, char const **buf);
+static double dbl_from_IEEE_float(SeisISegy *sgy, char const **buf);
+static double dbl_from_IEEE_double(SeisISegy *sgy, char const **buf);
+static double dbl_from_IEEE_float_native(SeisISegy *sgy,char const **buf);
+static double dbl_from_IEEE_double_native(SeisISegy *sgy, char const **buf);
+static double dbl_from_i8(SeisISegy *sgy, char const **buf);
+static double dbl_from_u8(SeisISegy *sgy, char const **buf);
+static double dbl_from_i16(SeisISegy *sgy, char const **buf);
+static double dbl_from_u16(SeisISegy *sgy, char const **buf);
+static double dbl_from_i24(SeisISegy *sgy, char const **buf);
+static double dbl_from_u24(SeisISegy *sgy, char const **buf);
+static double dbl_from_i32(SeisISegy *sgy, char const **buf);
+static double dbl_from_u32(SeisISegy *sgy, char const **buf);
+static double dbl_from_i64(SeisISegy *sgy, char const **buf);
+static double dbl_from_u64(SeisISegy *sgy, char const **buf);
 
-SeisSegy_t seis_segy_new(char mode)
+SeisISegy *seis_isegy_new()
 {
-	assert(mode == 'r' || mode == 'w');
-	SeisSegy_t sgy = (SeisSegy_t)malloc(sizeof(struct SeisSegy));
+	SeisISegy *sgy = (SeisISegy *)malloc(sizeof(struct SeisISegy));
 	if (!sgy)
 		goto error;
-	sgy->mode = mode;
-	sgy->err.code = SEIS_SEGY_ERR_OK;
-	sgy->err.message = "";
-	sgy->hdr_buf = (char*)malloc(TRACE_HEADER_SIZE);
-	if (!sgy->hdr_buf)
-		goto error;
-	sgy->samp_buf = NULL;
-	sgy->file = NULL;
+	sgy->com = seis_common_segy_new();
 	sgy->rc = 1;
-	str_arr_init(sgy->text_hdrs);
-	str_arr_init(sgy->end_stanzas);
 	return sgy;
 error:
 	return NULL;
 }
 
-SeisSegy_t seis_segy_ref(SeisSegy_t sgy)
+SeisISegy *seis_isegy_ref(SeisISegy *sgy)
 {
 	++sgy->rc;
 	return sgy;
 }
 
-void seis_segy_unref(SeisSegy_t sgy)
+void seis_isegy_unref(SeisISegy *sgy)
 {
 	if (--sgy->rc == 0) {
-		free(sgy->hdr_buf);
-		if (sgy->samp_buf)
-			free(sgy->samp_buf);
-		if (sgy->file)
-			fclose(sgy->file);
-		str_arr_clear(sgy->text_hdrs);
-		str_arr_clear(sgy->end_stanzas);
+		seis_common_segy_unref(sgy->com);
 		free(sgy);
 	}
 }
 
-bool seis_segy_end_of_data(SeisSegy_t sgy)
+bool seis_isegy_end_of_data(SeisISegy *sgy)
 {
 	return sgy->end_of_data == sgy->curr_pos;
 }
 
-SeisSegyErr_t seis_segy_get_error(SeisSegy_t sgy)
+SeisSegyErr *seis_isegy_get_error(SeisISegy *sgy)
 {
-	return &sgy->err;
+	return &sgy->com->err;
 }
 
-SeisSegyErrCode seis_segy_open(SeisSegy_t sgy, char const *file_name)
+SeisSegyErrCode seis_isegy_open(SeisISegy *sgy, char const *file_name)
 {
-	assert(!sgy->file);
-	TRY(open_file(sgy, file_name));
-	TRY(read_text_header(sgy, sgy->text_hdrs, 1));
+	SeisCommonSegy *com = sgy->com;
+	assert(!com->file);
+	com->file = fopen(file_name, "r");
+	if (!com->file) {
+		com->err.code = SEIS_SEGY_ERR_FILE_OPEN;
+		com->err.message = "file open error";
+		goto error;
+	}
+	TRY(read_text_header(sgy, seis_common_add_text_header, 1));
 	TRY(read_bin_header(sgy));
 	TRY(assign_sample_reader(sgy));
 	assign_bytes_per_sample(sgy);
 	TRY(read_ext_text_headers(sgy));
-	if (sgy->bin_hdr.byte_off_of_first_tr) {
-		sgy->first_trace_pos = sgy->bin_hdr.byte_off_of_first_tr;
-		fseek(sgy->file, sgy->first_trace_pos, SEEK_SET);
+	if (com->bin_hdr.byte_off_of_first_tr) {
+		sgy->first_trace_pos = com->bin_hdr.byte_off_of_first_tr;
+		fseek(com->file, sgy->first_trace_pos, SEEK_SET);
 	} else {
-		sgy->first_trace_pos = ftell(sgy->file);
+		sgy->first_trace_pos = ftell(com->file);
 	}
-	sgy->samp_per_tr = sgy->bin_hdr.ext_samp_per_tr ?
-		sgy->bin_hdr.ext_samp_per_tr : sgy->bin_hdr.samp_per_tr;
+	com->samp_per_tr = com->bin_hdr.ext_samp_per_tr ?
+ 		com->bin_hdr.ext_samp_per_tr : com->bin_hdr.samp_per_tr;
 	TRY(read_trailer_stanzas(sgy));
-	fseek(sgy->file, sgy->first_trace_pos, SEEK_SET);
+	fseek(com->file, sgy->first_trace_pos, SEEK_SET);
 	sgy->curr_pos = sgy->first_trace_pos;
-	sgy->samp_buf = (char*)malloc(sgy->samp_per_tr * sgy->bytes_per_sample);
-	if (sgy->bin_hdr.fixed_tr_length || !sgy->bin_hdr.SEGY_rev_major_ver)
+	com->samp_buf = (char*)malloc(com->samp_per_tr * com->bytes_per_sample);
+	if (com->bin_hdr.fixed_tr_length ||	!com->bin_hdr.SEGY_rev_major_ver) {
 		sgy->read_trc_smpls = read_trc_smpls_fix;
-	else
+		sgy->skip_trc_smpls = skip_trc_smpls_fix;
+	} else {
 		sgy->read_trc_smpls = read_trc_smpls_var;
+		sgy->skip_trc_smpls = skip_trc_smpls_var;
+	}
 error:
-	return sgy->err.code;
+	return com->err.code;
 }
 
-SeisTrace_t seis_segy_read_trace(SeisSegy_t sgy)
+SeisTrace *seis_isegy_read_trace(SeisISegy *sgy)
 {
-	SeisTraceHeader_t hdr = seis_trace_header_new();
+	SeisTraceHeader *hdr = seis_trace_header_new();
 	if (!hdr)
 		goto error;
 	TRY(read_trc_hdr(sgy, hdr));
-	SeisTrace_t trc;
+	SeisTrace *trc;
 	TRY(sgy->read_trc_smpls(sgy, hdr, &trc));
 	return trc;
 error:
 	return NULL;
 }
 
-SeisSegyBinHdr_t seis_segy_get_binary_header(SeisSegy_t sgy)
+SeisTraceHeader *seis_isegy_read_trace_header(SeisISegy *sgy)
 {
-	return &sgy->bin_hdr;
+	SeisTraceHeader *hdr = seis_trace_header_new();
+	if (!hdr)
+		goto error;
+	TRY(read_trc_hdr(sgy, hdr));
+	sgy->skip_trc_smpls(sgy, hdr);
+error:
+	return NULL;
 }
 
-SeisSegyErrCode fill_from_file(SeisSegy_t sgy, char *buf, size_t num)
+SeisSegyBinHdr *seis_isegy_get_binary_header(SeisISegy *sgy)
 {
-	size_t read = fread(buf, 1, num, sgy->file);
+	return &sgy->com->bin_hdr;
+}
+
+size_t seis_isegy_get_text_headers_num(SeisISegy *sgy)
+{
+	return seis_common_get_text_headers_num(sgy->com);
+}
+
+char const*seis_isegy_get_text_header(SeisISegy *sgy, size_t idx)
+{
+	return seis_common_get_text_header(sgy->com, idx);
+}
+
+SeisSegyErrCode fill_from_file(SeisISegy *sgy, char *buf, size_t num)
+{
+	SeisCommonSegy *com = sgy->com;
+	size_t read = fread(buf, 1, num, com->file);
 	if (read != num) {
-		sgy->err.code = SEIS_SEGY_ERR_FILE_READ;
-		sgy->err.message = "read less bytes than should";
+		com->err.code = SEIS_SEGY_ERR_FILE_READ;
+		com->err.message = "read less bytes than should";
 	}
-	sgy->curr_pos = ftell(sgy->file);
-	return sgy->err.code;
+	sgy->curr_pos = ftell(com->file);
+	return com->err.code;
 }
 
-void file_skip_bytes(SeisSegy_t sgy, size_t num)
+void file_skip_bytes(SeisISegy *sgy, size_t num)
 {
-	fseek(sgy->file, num, SEEK_CUR);
-	sgy->curr_pos = ftell(sgy->file);
+	fseek(sgy->com->file, num, SEEK_CUR);
+	sgy->curr_pos = ftell(sgy->com->file);
 }
 
-SeisSegyErrCode open_file(SeisSegy_t sgy, char const *file_name)
+SeisSegyErrCode read_text_header(SeisISegy *sgy,
+								 void (*add_func)(SeisCommonSegy*, char*),
+								 int num)
 {
-	switch (sgy->mode) {
-		case 'r':
-		sgy->file = fopen(file_name, "r");
-			break;
-		case 'w':
-		sgy->file = fopen(file_name, "w");
-			break;
-	}
-	if (!sgy->file) {
-		sgy->err.code = SEIS_SEGY_ERR_FILE_OPEN;
-		sgy->err.message = "file open error";
-	}
-	return sgy->err.code;
-}
-
-SeisSegyErrCode read_text_header(SeisSegy_t sgy, str_arr_t arr, int num)
-{
-	string_t tmp;
+	SeisCommonSegy *com = sgy->com;
 	char *text_buf = (char*)malloc(TEXT_HEADER_SIZE + 1);
 	text_buf[TEXT_HEADER_SIZE] = '\0';
 	if (!text_buf) {
-		sgy->err.code = SEIS_SEGY_ERR_NO_MEM;
-		sgy->err.message = "no memory for text header buf";
+		com->err.code = SEIS_SEGY_ERR_NO_MEM;
+		com->err.message = "no memory for text header buf";
 		goto error;
 	}
-	string_init(tmp);
 	for (int i = 0; i < num; ++i) {
 		TRY(fill_from_file(sgy, text_buf, TEXT_HEADER_SIZE));
-		string_set_strn(tmp, text_buf, TEXT_HEADER_SIZE);
-		str_arr_push_back(arr, tmp);
+		add_func(sgy->com, text_buf);
 	}
-	string_clear(tmp);
 	free(text_buf);
-	return sgy->err.code;
+	return com->err.code;
 error:
-	string_clear(tmp);
 	if (text_buf)
 		free(text_buf);
-	return sgy->err.code;
+	return com->err.code;
 }
 
-SeisSegyErrCode read_bin_header(SeisSegy_t sgy)
+SeisSegyErrCode read_bin_header(SeisISegy *sgy)
 {
+	SeisCommonSegy *com = sgy->com;
 	char *const bin_buf = (char*)malloc(BIN_HEADER_SIZE);
 	if (!bin_buf) {
-		sgy->err.code = SEIS_SEGY_ERR_NO_MEM;
-		sgy->err.message = "no memory for bin header";
+		com->err.code = SEIS_SEGY_ERR_NO_MEM;
+		com->err.message = "no memory for bin header";
 	}
 	TRY(fill_from_file(sgy, bin_buf, BIN_HEADER_SIZE));
-    memcpy(&sgy->bin_hdr.endianness, bin_buf + 96, sizeof(int32_t));
+    memcpy(&com->bin_hdr.endianness, bin_buf + 96, sizeof(int32_t));
 	TRY(assign_raw_readers(sgy));
 	char const *ptr = bin_buf;
-	sgy->bin_hdr.job_id = sgy->read_i32(&ptr);
-	sgy->bin_hdr.line_num = sgy->read_i32(&ptr);
-	sgy->bin_hdr.reel_num = sgy->read_i32(&ptr);
-	sgy->bin_hdr.tr_per_ens = sgy->read_i16(&ptr);
-	sgy->bin_hdr.aux_per_ens = sgy->read_i16(&ptr);
-	sgy->bin_hdr.samp_int = sgy->read_i16(&ptr);
-	sgy->bin_hdr.samp_int_orig = sgy->read_i16(&ptr);
-	sgy->bin_hdr.samp_per_tr = sgy->read_i16(&ptr);
-	sgy->bin_hdr.samp_per_tr_orig = sgy->read_i16(&ptr);
-	sgy->bin_hdr.format_code = sgy->read_i16(&ptr);
-	sgy->bin_hdr.ens_fold = sgy->read_i16(&ptr);
-	sgy->bin_hdr.sort_code = sgy->read_i16(&ptr);
-	sgy->bin_hdr.vert_sum_code = sgy->read_i16(&ptr);
-	sgy->bin_hdr.sw_freq_at_start = sgy->read_i16(&ptr);
-	sgy->bin_hdr.sw_freq_at_end = sgy->read_i16(&ptr);
-	sgy->bin_hdr.sw_length = sgy->read_i16(&ptr);
-	sgy->bin_hdr.sw_type_code = sgy->read_i16(&ptr);
-	sgy->bin_hdr.sw_ch_tr_num = sgy->read_i16(&ptr);
-	sgy->bin_hdr.taper_at_start = sgy->read_i16(&ptr);
-	sgy->bin_hdr.taper_at_end = sgy->read_i16(&ptr);
-	sgy->bin_hdr.taper_type = sgy->read_i16(&ptr);
-	sgy->bin_hdr.corr_traces = sgy->read_i16(&ptr);
-	sgy->bin_hdr.bin_gain_recov = sgy->read_i16(&ptr);
-	sgy->bin_hdr.amp_recov_meth = sgy->read_i16(&ptr);
-	sgy->bin_hdr.measure_system = sgy->read_i16(&ptr);
-	sgy->bin_hdr.impulse_sig_pol = sgy->read_i16(&ptr);
-	sgy->bin_hdr.vib_pol_code = sgy->read_i16(&ptr);
-	sgy->bin_hdr.ext_tr_per_ens = sgy->read_i32(&ptr);
-	sgy->bin_hdr.ext_aux_per_ens = sgy->read_i32(&ptr);
-	sgy->bin_hdr.ext_samp_per_tr = sgy->read_i32(&ptr);
-	sgy->bin_hdr.ext_samp_int = sgy->dbl_from_IEEE_double(sgy, &ptr);
-	sgy->bin_hdr.ext_samp_int_orig = sgy->dbl_from_IEEE_double(sgy, &ptr);
-	sgy->bin_hdr.ext_samp_per_tr_orig = sgy->read_i32(&ptr);
-	sgy->bin_hdr.ext_ens_fold = sgy->read_i32(&ptr);
+	com->bin_hdr.job_id = sgy->read_i32(&ptr);
+	com->bin_hdr.line_num = sgy->read_i32(&ptr);
+	com->bin_hdr.reel_num = sgy->read_i32(&ptr);
+	com->bin_hdr.tr_per_ens = sgy->read_i16(&ptr);
+	com->bin_hdr.aux_per_ens = sgy->read_i16(&ptr);
+	com->bin_hdr.samp_int = sgy->read_i16(&ptr);
+	com->bin_hdr.samp_int_orig = sgy->read_i16(&ptr);
+	com->bin_hdr.samp_per_tr = sgy->read_i16(&ptr);
+	com->bin_hdr.samp_per_tr_orig = sgy->read_i16(&ptr);
+	com->bin_hdr.format_code = sgy->read_i16(&ptr);
+	com->bin_hdr.ens_fold = sgy->read_i16(&ptr);
+	com->bin_hdr.sort_code = sgy->read_i16(&ptr);
+	com->bin_hdr.vert_sum_code = sgy->read_i16(&ptr);
+	com->bin_hdr.sw_freq_at_start = sgy->read_i16(&ptr);
+	com->bin_hdr.sw_freq_at_end = sgy->read_i16(&ptr);
+	com->bin_hdr.sw_length = sgy->read_i16(&ptr);
+	com->bin_hdr.sw_type_code = sgy->read_i16(&ptr);
+	com->bin_hdr.sw_ch_tr_num = sgy->read_i16(&ptr);
+	com->bin_hdr.taper_at_start = sgy->read_i16(&ptr);
+	com->bin_hdr.taper_at_end = sgy->read_i16(&ptr);
+	com->bin_hdr.taper_type = sgy->read_i16(&ptr);
+	com->bin_hdr.corr_traces = sgy->read_i16(&ptr);
+	com->bin_hdr.bin_gain_recov = sgy->read_i16(&ptr);
+	com->bin_hdr.amp_recov_meth = sgy->read_i16(&ptr);
+	com->bin_hdr.measure_system = sgy->read_i16(&ptr);
+	com->bin_hdr.impulse_sig_pol = sgy->read_i16(&ptr);
+	com->bin_hdr.vib_pol_code = sgy->read_i16(&ptr);
+	com->bin_hdr.ext_tr_per_ens = sgy->read_i32(&ptr);
+	com->bin_hdr.ext_aux_per_ens = sgy->read_i32(&ptr);
+	com->bin_hdr.ext_samp_per_tr = sgy->read_i32(&ptr);
+	com->bin_hdr.ext_samp_int = sgy->dbl_from_IEEE_double(sgy, &ptr);
+	com->bin_hdr.ext_samp_int_orig = sgy->dbl_from_IEEE_double(sgy, &ptr);
+	com->bin_hdr.ext_samp_per_tr_orig = sgy->read_i32(&ptr);
+	com->bin_hdr.ext_ens_fold = sgy->read_i32(&ptr);
 	ptr += 204; // skip unassigned fields and endianness
-	sgy->bin_hdr.SEGY_rev_major_ver = sgy->read_u8(&ptr);
-	sgy->bin_hdr.SEGY_rev_minor_ver = sgy->read_u8(&ptr);
-	sgy->bin_hdr.fixed_tr_length = sgy->read_i16(&ptr);
-	sgy->bin_hdr.ext_text_headers_num = sgy->read_i16(&ptr);
-	sgy->bin_hdr.max_num_add_tr_headers = sgy->read_i32(&ptr);
-	sgy->bin_hdr.time_basis_code = sgy->read_i16(&ptr);
-	sgy->bin_hdr.num_of_tr_in_file = sgy->read_i64(&ptr);
-	sgy->bin_hdr.byte_off_of_first_tr = sgy->read_u64(&ptr);
-	sgy->bin_hdr.num_of_trailer_stanza = sgy->read_i32(&ptr);
+	com->bin_hdr.SEGY_rev_major_ver = sgy->read_u8(&ptr);
+	com->bin_hdr.SEGY_rev_minor_ver = sgy->read_u8(&ptr);
+	com->bin_hdr.fixed_tr_length = sgy->read_i16(&ptr);
+	com->bin_hdr.ext_text_headers_num = sgy->read_i16(&ptr);
+	com->bin_hdr.max_num_add_tr_headers = sgy->read_i32(&ptr);
+	com->bin_hdr.time_basis_code = sgy->read_i16(&ptr);
+	com->bin_hdr.num_of_tr_in_file = sgy->read_i64(&ptr);
+	com->bin_hdr.byte_off_of_first_tr = sgy->read_u64(&ptr);
+	com->bin_hdr.num_of_trailer_stanza = sgy->read_i32(&ptr);
 error:
 	free(bin_buf);
-	return sgy->err.code;
+	return com->err.code;
 }
 
-SeisSegyErrCode assign_raw_readers(SeisSegy_t sgy)
+SeisSegyErrCode assign_raw_readers(SeisISegy *sgy)
 {
+	SeisCommonSegy *com = sgy->com;
 	sgy->read_i8 = read_i8;
 	sgy->read_u8 = read_u8;
-	switch (sgy->bin_hdr.endianness) {
+	switch (com->bin_hdr.endianness) {
 	case 0x01020304:
 		sgy->read_i16 = read_i16;
 		sgy->read_u16 = read_u16;
@@ -339,8 +332,8 @@ SeisSegyErrCode assign_raw_readers(SeisSegy_t sgy)
 		sgy->read_u64 = read_u64_sw;
 		break;
 	default:
-		sgy->err.code = SEIS_SEGY_ERR_UNKNOWN_ENDIANNESS;
-		sgy->err.message = "unsupported endianness";
+		com->err.code = SEIS_SEGY_ERR_UNKNOWN_ENDIANNESS;
+		com->err.message = "unsupported endianness";
 	}
 	if (FLT_RADIX == 2 && DBL_MANT_DIG == 53) {
 		sgy->dbl_from_IEEE_float = dbl_from_IEEE_float_native;
@@ -349,12 +342,13 @@ SeisSegyErrCode assign_raw_readers(SeisSegy_t sgy)
 		sgy->dbl_from_IEEE_float = dbl_from_IEEE_float;
 		sgy->dbl_from_IEEE_double = dbl_from_IEEE_double;
 	}
-	return sgy->err.code;
+	return com->err.code;
 }
 
-SeisSegyErrCode assign_sample_reader(SeisSegy_t sgy)
+SeisSegyErrCode assign_sample_reader(SeisISegy *sgy)
 {
-    switch (sgy->bin_hdr.format_code) {
+	SeisCommonSegy *com = sgy->com;
+    switch (com->bin_hdr.format_code) {
     case 1:
         sgy->read_sample = dbl_from_IBM_float;
         break;
@@ -395,186 +389,224 @@ SeisSegyErrCode assign_sample_reader(SeisSegy_t sgy)
         sgy->read_sample = dbl_from_u8;
         break;
     default:
-		sgy->err.code = SEIS_SEGY_ERR_UNSUPPORTED_FORMAT;
-		sgy->err.message = "unsupported format code";
+		com->err.code = SEIS_SEGY_ERR_UNSUPPORTED_FORMAT;
+		com->err.message = "unsupported format code";
     }
-	return sgy->err.code;
+	return com->err.code;
 }
 
-void assign_bytes_per_sample(SeisSegy_t sgy)
+void assign_bytes_per_sample(SeisISegy *sgy)
 {
-    switch (sgy->bin_hdr.format_code) {
+	SeisCommonSegy *com = sgy->com;
+    switch (com->bin_hdr.format_code) {
     case 1:
     case 2:
     case 4:
     case 5:
     case 10:
-        sgy->bytes_per_sample = 4;
+        com->bytes_per_sample = 4;
         break;
     case 3:
     case 11:
-        sgy->bytes_per_sample = 2;
+        com->bytes_per_sample = 2;
         break;
     case 6:
     case 9:
     case 12:
-        sgy->bytes_per_sample = 8;
+        com->bytes_per_sample = 8;
         break;
     case 7:
     case 15:
-        sgy->bytes_per_sample = 3;
+        com->bytes_per_sample = 3;
         break;
     case 8:
     case 16:
-        sgy->bytes_per_sample = 1;
+        com->bytes_per_sample = 1;
         break;
     }
 }
 
-SeisSegyErrCode read_ext_text_headers(SeisSegy_t sgy)
+SeisSegyErrCode read_ext_text_headers(SeisISegy *sgy)
 {
-    int num = sgy->bin_hdr.ext_text_headers_num;
+	SeisCommonSegy *com = sgy->com;
+    int num = com->bin_hdr.ext_text_headers_num;
     if (!num)
 		goto error;
     if (num == -1) {
         char *end_stanza = "((SEG: EndText))";
         while (1) {
-			TRY(read_text_header(sgy, sgy->text_hdrs, 1));
-            if (string_search_str(*str_arr_back(sgy->text_hdrs), end_stanza) !=
-				STRING_FAILURE)
+			TRY(read_text_header(sgy, seis_common_add_text_header, 1));
+			size_t hdrs_read = seis_common_get_text_headers_num(com);
+			char const *hdr = seis_common_get_text_header(com, hdrs_read - 1);
+            if (!strstr(hdr, end_stanza))
 				goto error;
         }
     } else {
-		TRY(read_text_header(sgy, sgy->text_hdrs, num));
+		TRY(read_text_header(sgy, seis_common_add_text_header, num));
     }
+	return com->err.code;
 error:
-	return sgy->err.code;
+	return com->err.code;
 }
 
-SeisSegyErrCode read_trailer_stanzas(SeisSegy_t sgy)
+SeisSegyErrCode read_trailer_stanzas(SeisISegy *sgy)
 {
+	SeisCommonSegy *com = sgy->com;
+    int32_t stanz_num = com->bin_hdr.num_of_trailer_stanza;
 	/* skip if no trailer stanzas */
-	if (sgy->bin_hdr.num_of_trailer_stanza) {
+	if (stanz_num) {
 		char *text_buf = (char*)malloc(TEXT_HEADER_SIZE);
 		if (!text_buf) {
-			sgy->err.code = SEIS_SEGY_ERR_NO_MEM;
-			sgy->err.message = "no mem for trailer stanza";
+			com->err.code = SEIS_SEGY_ERR_NO_MEM;
+			com->err.message = "no mem for trailer stanza";
 			goto error;
 		}
 		/* if number is unknown */
-		if (sgy->bin_hdr.num_of_trailer_stanza == -1) {
+		if (stanz_num == -1) {
 			/* we need to know number of traces to skip them */
-			if (!sgy->bin_hdr.num_of_tr_in_file) {
-				sgy->err.code = SEIS_SEGY_ERR_BROKEN_FILE;
-				sgy->err.message = "unable to determine end of trace data";
+			if (!com->bin_hdr.num_of_tr_in_file) {
+				com->err.code = SEIS_SEGY_ERR_BROKEN_FILE;
+				com->err.message = "unable to determine end of trace data";
 				goto error;
 			}
 			/* if traces has fixed length */
-			if (sgy->bin_hdr.fixed_tr_length) {
-				fseek(sgy->file, (sgy->bytes_per_sample * sgy->samp_per_tr +
-					  TRACE_HEADER_SIZE) * sgy->bin_hdr.num_of_tr_in_file,
+			if (com->bin_hdr.fixed_tr_length) {
+				fseek(com->file, (com->bytes_per_sample * com->samp_per_tr +
+					  TRACE_HEADER_SIZE) * com->bin_hdr.num_of_tr_in_file,
 					  SEEK_CUR);
-				sgy->end_of_data = ftell(sgy->file);
+				sgy->end_of_data = ftell(com->file);
 				char *end_stanza = "((SEG: EndText))";
 				while (1) {
-					TRY(read_text_header(sgy, sgy->end_stanzas, 1));
-					if (string_search_str(*str_arr_back(sgy->end_stanzas),
-										  end_stanza) != STRING_FAILURE)
+					TRY(read_text_header(sgy, seis_common_add_stanza, 1));
+					size_t stanz_read = seis_common_get_stanzas_num(com);
+					char const* last_stanz =
+					   	seis_common_get_stanza(com, stanz_read - 1);
+					if (!strstr(last_stanz, end_stanza))
 						goto error;
 				}
 			/* if traces has variable trace length */
 			} else {
-				for (uint64_t i = 0; i < sgy->bin_hdr.num_of_tr_in_file; ++i) {
-					TRY(fill_from_file(sgy, sgy->trc_hdr_buf,
+				for (uint64_t i = 0; i < com->bin_hdr.num_of_tr_in_file; ++i) {
+					TRY(fill_from_file(sgy, com->hdr_buf,
 									   TRACE_HEADER_SIZE));
-					char const* ptr = sgy->trc_hdr_buf + 114;
+					char const* ptr = com->hdr_buf + 114;
 					uint32_t trc_samp_num = sgy->read_i16(&ptr);
-					if (sgy->bin_hdr.max_num_add_tr_headers) {
-						TRY(fill_from_file(sgy, sgy->trc_hdr_buf,
+					if (com->bin_hdr.max_num_add_tr_headers) {
+						TRY(fill_from_file(sgy, com->hdr_buf,
 										   TRACE_HEADER_SIZE));
-						ptr = sgy->trc_hdr_buf + 136;
+						ptr = com->hdr_buf + 136;
 						trc_samp_num = sgy->read_u32(&ptr);
-						ptr = sgy->trc_hdr_buf + 156;
+						ptr = com->hdr_buf + 156;
 						uint16_t add_tr_hdr_num = sgy->read_i16(&ptr);
 						add_tr_hdr_num = add_tr_hdr_num ? add_tr_hdr_num :
-							sgy->bin_hdr.max_num_add_tr_headers;
-						fseek(sgy->file, (add_tr_hdr_num - 1) *
+							com->bin_hdr.max_num_add_tr_headers;
+						fseek(com->file, (add_tr_hdr_num - 1) *
 							  TRACE_HEADER_SIZE, SEEK_CUR);
 					}
-					fseek(sgy->file, trc_samp_num * sgy->bytes_per_sample,
+					fseek(com->file, trc_samp_num * com->bytes_per_sample,
 						  SEEK_CUR);
 				}
-				sgy->end_of_data = ftell(sgy->file);
+				sgy->end_of_data = ftell(com->file);
 				char *end_stanza = "((SEG: EndText))";
 				while (1) {
-					TRY(read_text_header(sgy, sgy->end_stanzas, 1));
-					if (string_search_str(*str_arr_back(sgy->end_stanzas),
-										  end_stanza) != STRING_FAILURE)
+					TRY(read_text_header(sgy, seis_common_add_stanza, 1));
+					size_t stanz_read = seis_common_get_stanzas_num(com);
+					char const* last_stanz =
+					   	seis_common_get_stanza(com, stanz_read - 1);
+					if (!strstr(last_stanz, end_stanza))
 						goto error;
 				}
 			}
 		/* if we know number of stanzas just read them */
 		} else {
-			fseek(sgy->file, sgy->bin_hdr.num_of_trailer_stanza *
+			fseek(com->file, com->bin_hdr.num_of_trailer_stanza *
 				  TEXT_HEADER_SIZE, SEEK_END);
-			sgy->end_of_data = ftell(sgy->file);
-			TRY(read_text_header(sgy, sgy->end_stanzas,
-							 sgy->bin_hdr.num_of_trailer_stanza));
+			sgy->end_of_data = ftell(com->file);
+			TRY(read_text_header(sgy, seis_common_add_stanza,
+							 com->bin_hdr.num_of_trailer_stanza));
 		}
 error:
 		if (text_buf)
 			free(text_buf);
-		return sgy->err.code;
+		return com->err.code;
 	} else {
-		fseek(sgy->file, 0, SEEK_END);
-		sgy->end_of_data = ftell(sgy->file);
+		fseek(com->file, 0, SEEK_END);
+		sgy->end_of_data = ftell(com->file);
 	}
-	return sgy->err.code;
+	return com->err.code;
 }
 
-SeisSegyErrCode read_trc_smpls_fix(SeisSegy_t sgy, SeisTraceHeader_t hdr,
-								   SeisTrace_t *trc)
+SeisSegyErrCode read_trc_smpls_fix(SeisISegy *sgy, SeisTraceHeader *hdr,
+								   SeisTrace **trc)
 {
-	TRY(fill_from_file(sgy, sgy->samp_buf, sgy->samp_per_tr *
-					   sgy->bytes_per_sample));
-	char const* ptr = sgy->samp_buf;
-	*trc = seis_trace_new_with_header(sgy->samp_per_tr, hdr);
+	SeisCommonSegy *com = sgy->com;
+	TRY(fill_from_file(sgy, com->samp_buf, com->samp_per_tr *
+					   com->bytes_per_sample));
+	char const* ptr = com->samp_buf;
+	*trc = seis_trace_new_with_header(com->samp_per_tr, hdr);
 	double *samples = seis_trace_get_samples(*trc);
-	for (double *end = samples + sgy->samp_per_tr; samples != end; ++samples)
+	for (double *end = samples + com->samp_per_tr; samples != end; ++samples)
 		*samples = sgy->read_sample(sgy, &ptr);
 error:
-	return sgy->err.code;
+	return com->err.code;
 }
 
-SeisSegyErrCode read_trc_smpls_var(SeisSegy_t sgy, SeisTraceHeader_t hdr,
-								   SeisTrace_t *trc)
+SeisSegyErrCode read_trc_smpls_var(SeisISegy *sgy, SeisTraceHeader *hdr,
+								   SeisTrace **trc)
 {
+	SeisCommonSegy *com = sgy->com;
 	long long *samp_num = seis_trace_header_get_int(hdr, "SAMP_NUM");
-	assert(samp_num);
-	if (sgy->samp_per_tr < *samp_num) {
-		sgy->samp_per_tr = *samp_num;
-		void *res = realloc(sgy->samp_buf, *samp_num * sgy->bytes_per_sample);
+	if (!samp_num) {
+		com->err.code = SEIS_SEGY_ERR_BROKEN_FILE;
+		com->err.message = "variable trace length and zero samples number";
+		goto error;
+	}
+	if (com->samp_per_tr < *samp_num) {
+		com->samp_per_tr = *samp_num;
+		void *res = realloc(com->samp_buf, *samp_num * com->bytes_per_sample);
 		if (!res) {
-			sgy->err.code = SEIS_SEGY_ERR_NO_MEM;
-			sgy->err.message = "can not allocate memory for "
+			com->err.code = SEIS_SEGY_ERR_NO_MEM;
+			com->err.message = "can not allocate memory for "
 				"trace samples reading";
 			goto error;
 		}
 	}
-	TRY(fill_from_file(sgy, sgy->samp_buf, *samp_num * sgy->bytes_per_sample));
-	char const* ptr = sgy->samp_buf;
+	TRY(fill_from_file(sgy, com->samp_buf, *samp_num * com->bytes_per_sample));
+	char const* ptr = com->samp_buf;
 	*trc = seis_trace_new_with_header(*samp_num, hdr);
 	double *samples = seis_trace_get_samples(*trc);
 	for (double *end = samples + *samp_num; samples != end; ++samples)
 		*samples = sgy->read_sample(sgy, &ptr);
 error:
-	return sgy->err.code;
+	return com->err.code;
 }
 
-SeisSegyErrCode read_trc_hdr(SeisSegy_t sgy, SeisTraceHeader_t hdr)
+SeisSegyErrCode skip_trc_smpls_fix(SeisISegy *sgy, SeisTraceHeader *hdr)
 {
-	TRY(fill_from_file(sgy, sgy->hdr_buf, TRACE_HEADER_SIZE));
-	char const* ptr = sgy->hdr_buf;
+	SeisCommonSegy *com = sgy->com;
+	fseek(com->file, com->bytes_per_sample * com->samp_per_tr, SEEK_CUR);
+	return com->err.code;
+}
+
+SeisSegyErrCode skip_trc_smpls_var(SeisISegy *sgy, SeisTraceHeader *hdr)
+{
+	SeisCommonSegy *com = sgy->com;
+	long long *samp_num = seis_trace_header_get_int(hdr, "SAMP_NUM");
+	if (!samp_num) {
+		com->err.code = SEIS_SEGY_ERR_BROKEN_FILE;
+		com->err.message = "variable trace length and zero samples number";
+		goto error;
+	}
+	fseek(com->file, com->bytes_per_sample * *samp_num, SEEK_CUR);
+error:
+	return com->err.code;
+}
+
+SeisSegyErrCode read_trc_hdr(SeisISegy *sgy, SeisTraceHeader *hdr)
+{
+	SeisCommonSegy *com = sgy->com;
+	TRY(fill_from_file(sgy, com->hdr_buf, TRACE_HEADER_SIZE));
+	char const* ptr = com->hdr_buf;
 	seis_trace_header_set_int(hdr, "TRC_SEQ_LINE", sgy->read_i32(&ptr));
 	seis_trace_header_set_int(hdr, "TRC_SEQ_SGY", sgy->read_i32(&ptr));
 	seis_trace_header_set_int(hdr, "FFID", sgy->read_i32(&ptr));
@@ -667,9 +699,9 @@ SeisSegyErrCode read_trc_hdr(SeisSegy_t sgy, SeisTraceHeader_t hdr)
 	seis_trace_header_set_real(hdr, "SOURCE_MEASUREMENT", mant *
 							  pow(10, sgy->read_i16(&ptr)));
 	seis_trace_header_set_int(hdr, "SOU_MEAS_UNIT", sgy->read_i16(&ptr));
-	if (sgy->bin_hdr.max_num_add_tr_headers) {
-		TRY(fill_from_file(sgy, sgy->hdr_buf, TRACE_HEADER_SIZE));
-		char const* ptr = sgy->hdr_buf;
+	if (com->bin_hdr.max_num_add_tr_headers) {
+		TRY(fill_from_file(sgy, com->hdr_buf, TRACE_HEADER_SIZE));
+		char const* ptr = com->hdr_buf;
 		seis_trace_header_set_int(hdr, "TRC_SEQ_LINE", sgy->read_u64(&ptr));
 		seis_trace_header_set_int(hdr, "TRC_SEQ_SGY", sgy->read_u64(&ptr));
 		seis_trace_header_set_int(hdr, "FFID", sgy->read_u64(&ptr));
@@ -707,7 +739,7 @@ SeisSegyErrCode read_trc_hdr(SeisSegy_t sgy, SeisTraceHeader_t hdr)
 		uint16_t add_trc_hdr_num = sgy->read_u16(&ptr);
 		if (!add_trc_hdr_num)
 			seis_trace_header_set_int(hdr, "ADD_TRC_HDR_NUM",
-									  sgy->bin_hdr.max_num_add_tr_headers);
+									  com->bin_hdr.max_num_add_tr_headers);
 		else
 			seis_trace_header_set_int(hdr, "ADD_TRC_HDR_NUM", add_trc_hdr_num);
 		seis_trace_header_set_int(hdr, "LAST_TRC_FLAG", sgy->read_i16(&ptr));
@@ -716,14 +748,14 @@ SeisSegyErrCode read_trc_hdr(SeisSegy_t sgy, SeisTraceHeader_t hdr)
 		seis_trace_header_set_int(hdr, "CDP_Y",
 								  sgy->dbl_from_IEEE_double(sgy, &ptr));
 		add_trc_hdr_num = add_trc_hdr_num ? add_trc_hdr_num :
-			sgy->bin_hdr.max_num_add_tr_headers;
+			com->bin_hdr.max_num_add_tr_headers;
 		for (int32_t i = 0; i < add_trc_hdr_num - 1; ++i) {
 			/* TODO: add custom additional headers reading */
 			file_skip_bytes(sgy, TRACE_HEADER_SIZE);
 		}
 	}
 error:
-	return sgy->err.code;
+	return com->err.code;
 }
 
 int8_t read_i8(char const **buf)
@@ -880,7 +912,7 @@ uint64_t read_u64_sw(char const **buf)
 			(res & 0xff000000) <<  8 | (res & 0xff00000000) >> 8);
 }
 
-double dbl_from_IBM_float(SeisSegy_t sgy, char const **buf)
+double dbl_from_IBM_float(SeisISegy *sgy, char const **buf)
 {
 	uint32_t ibm = sgy->read_u32(buf);
 	int sign = ibm >> 31 ? -1 : 1;
@@ -889,7 +921,7 @@ double dbl_from_IBM_float(SeisSegy_t sgy, char const **buf)
 	return fraction / pow(2, 24) * pow(16, exp - 64) * sign;
 }
 
-double dbl_from_IEEE_float(SeisSegy_t sgy, char const **buf)
+double dbl_from_IEEE_float(SeisISegy *sgy, char const **buf)
 {
 	uint32_t tmp = sgy->read_u32(buf);
 	int sign = tmp >> 31 ? -1 : 1;
@@ -898,7 +930,7 @@ double dbl_from_IEEE_float(SeisSegy_t sgy, char const **buf)
 	return sign * pow(2, exp - 127) * (1 + fraction / pow(2, 23));
 }
 
-double dbl_from_IEEE_double(SeisSegy_t sgy, char const **buf)
+double dbl_from_IEEE_double(SeisISegy *sgy, char const **buf)
 {
 	uint64_t tmp = sgy->read_u64(buf);
 	int sign = tmp >> 63 ? -1 : 1;
@@ -907,7 +939,7 @@ double dbl_from_IEEE_double(SeisSegy_t sgy, char const **buf)
 	return sign * pow(2, exp - 1023) * (1 + fraction / pow(2, 52));
 }
 
-double dbl_from_IEEE_float_native(SeisSegy_t sgy, char const **buf)
+double dbl_from_IEEE_float_native(SeisISegy *sgy, char const **buf)
 {
 	uint32_t tmp = sgy->read_u32(buf);
 	float result;
@@ -915,7 +947,7 @@ double dbl_from_IEEE_float_native(SeisSegy_t sgy, char const **buf)
 	return (double)result;
 }
 
-double dbl_from_IEEE_double_native(SeisSegy_t sgy, char const **buf)
+double dbl_from_IEEE_double_native(SeisISegy *sgy, char const **buf)
 {
 	uint64_t tmp = sgy->read_u64(buf);
 	double result;
@@ -923,52 +955,52 @@ double dbl_from_IEEE_double_native(SeisSegy_t sgy, char const **buf)
 	return result;
 }
 
-double dbl_from_i8(SeisSegy_t sgy, char const **buf)
+double dbl_from_i8(SeisISegy *sgy, char const **buf)
 {
 	return sgy->read_i8(buf);
 }
 
-double dbl_from_u8(SeisSegy_t sgy, char const **buf)
+double dbl_from_u8(SeisISegy *sgy, char const **buf)
 {
 	return sgy->read_u8(buf);
 }
 
-double dbl_from_i16(SeisSegy_t sgy, char const **buf)
+double dbl_from_i16(SeisISegy *sgy, char const **buf)
 {
 	return sgy->read_i16(buf);
 }
 
-double dbl_from_u16(SeisSegy_t sgy, char const **buf)
+double dbl_from_u16(SeisISegy *sgy, char const **buf)
 {
 	return sgy->read_u16(buf);
 }
 
-double dbl_from_i24(SeisSegy_t sgy, char const **buf)
+double dbl_from_i24(SeisISegy *sgy, char const **buf)
 {
 	return sgy->read_i24(buf);
 }
 
-double dbl_from_u24(SeisSegy_t sgy, char const **buf)
+double dbl_from_u24(SeisISegy *sgy, char const **buf)
 {
 	return sgy->read_u24(buf);
 }
 
-double dbl_from_i32(SeisSegy_t sgy, char const **buf)
+double dbl_from_i32(SeisISegy *sgy, char const **buf)
 {
 	return sgy->read_i32(buf);
 }
 
-double dbl_from_u32(SeisSegy_t sgy, char const **buf)
+double dbl_from_u32(SeisISegy *sgy, char const **buf)
 {
 	return sgy->read_u32(buf);
 }
 
-double dbl_from_i64(SeisSegy_t sgy, char const **buf)
+double dbl_from_i64(SeisISegy *sgy, char const **buf)
 {
 	return sgy->read_i64(buf);
 }
 
-double dbl_from_u64(SeisSegy_t sgy, char const **buf)
+double dbl_from_u64(SeisISegy *sgy, char const **buf)
 {
 	return sgy->read_u64(buf);
 }
