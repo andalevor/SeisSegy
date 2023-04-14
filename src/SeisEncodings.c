@@ -42,11 +42,11 @@ static uint8_t a2e[256] = {
 void ebcdic_to_ascii(char *s)
 {
 	while((*s = e2a[(uint8_t)*s]))
-		;
+		++s;
 }
 
 void ascii_to_ebcdic(char *s)
 {
 	while((*s = a2e[(uint8_t)*s]))
-		;
+		++s;
 }

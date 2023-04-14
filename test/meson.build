@@ -33,3 +33,17 @@ read_all_headers = executable('read_all_headers', 'read_all_headers.c',
   dependencies : seistrace_dep)
 test('Test reading all trace headers from SEGY', read_all_headers,
   args : '../samples/ibm.sgy')
+
+ebcdic_to_ascii = executable('ebcdic_to_ascii', 'ebcdic_to_ascii.c',
+  include_directories : inc,
+  link_with : SeisSegy,
+  dependencies : seistrace_dep)
+test('Test reading and convert text header', ebcdic_to_ascii,
+  args : '../samples/ibm.sgy')
+
+ascii_to_ebcdic = executable('ascii_to_ebcdic', 'ascii_to_ebcdic.c',
+  include_directories : inc,
+  link_with : SeisSegy,
+  dependencies : seistrace_dep)
+test('Test reading and convert text header', ascii_to_ebcdic,
+  args : '../samples/ibm.sgy')
