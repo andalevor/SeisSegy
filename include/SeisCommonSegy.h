@@ -8,6 +8,7 @@
 #ifndef SEIS_COMMON_SEGY_H
 #define SEIS_COMMON_SEGY_H
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -78,6 +79,7 @@ typedef enum SeisSegyErrCode {
 	SEIS_SEGY_ERR_UNKNOWN_ENDIANNESS,
 	SEIS_SEGY_ERR_UNSUPPORTED_FORMAT,
 	SEIS_SEGY_ERR_BROKEN_FILE,
+	SEIS_SEGY_ERR_FILE_WRITE,
 } SeisSegyErrCode;
 
 /**
@@ -90,8 +92,8 @@ typedef struct SeisSegyErr {
 } SeisSegyErr;
 
 /**
- * \struct SeisSegy
- * \brief Main type for SEGY manipulation.
+ * \struct SeisCommonSegy
+ * \brief SEGY common parts.
  */
 typedef struct SeisCommonSegy {
 	struct SeisSegyBinHdr bin_hdr;
@@ -117,12 +119,22 @@ SeisCommonSegy *seis_common_segy_new();
 void seis_common_segy_unref(SeisCommonSegy *com);
 
 /**
+ * \fn seis_common_segy_set_text_header
+ * \brief sets text header by its index
+ * \param com Pointer to SeisCommonSegy object.
+ * \param idx index of header. must be less than number of headers
+ * \param hdr text header. must have 3200 chars length
+ */
+void seis_common_segy_set_text_header(SeisCommonSegy *com, size_t idx,
+									  char const *hdr);
+
+/**
  * \fn seis_common_add_text_header
  * \brief adds SEGY text header to internal storage.
  * \param com Pointer to SeisCommonSegy object.
  * \param com Pointer to buffer with header.
  */
-void seis_common_add_text_header(SeisCommonSegy *com, char* buf);
+void seis_common_add_text_header(SeisCommonSegy *com, char const *buf);
 
 /**
  * \fn seis_common_add_stanza
@@ -130,7 +142,7 @@ void seis_common_add_text_header(SeisCommonSegy *com, char* buf);
  * \param com Pointer to SeisCommonSegy object.
  * \param com Pointer to buffer with stanza.
  */
-void seis_common_add_stanza(SeisCommonSegy *com, char* buf);
+void seis_common_add_stanza(SeisCommonSegy *com, char const *buf);
 
 /**
  * \fn seis_common_get_text_headers_num
@@ -165,5 +177,20 @@ size_t seis_common_get_stanzas_num(SeisCommonSegy const*com);
  * \return Pointer to stanza. Should not be freed.
  */
 char const* seis_common_get_stanza(SeisCommonSegy const*com, size_t idx);
+
+/**
+ * \brief Text header from SEGY revision 0 standard
+ */
+extern char const* seis_segy_default_text_header_rev0;
+
+/**
+ * \brief Text header from SEGY revision 1 standard
+ */
+extern char const* seis_segy_default_text_header_rev1;
+
+/**
+ * \brief Text header from SEGY revision 2 standard
+ */
+extern char const* seis_segy_default_text_header_rev2;
 
 #endif /* SEIS_COMMON_SEGY_H */

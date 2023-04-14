@@ -46,7 +46,7 @@ void seis_isegy_unref(SeisISegy *sgy);
  * \brief Gets SeisISegyErr structure for error checking.
  * \return nonNULL. You should not free this memory.
  */
-SeisSegyErr const*seis_isegy_get_error(SeisISegy const*sgy);
+SeisSegyErr const *seis_isegy_get_error(SeisISegy const *sgy);
 
 /**
  * \fn seis_isegy_open
@@ -81,7 +81,7 @@ SeisTraceHeader *seis_isegy_read_trace_header(SeisISegy *sgy);
  * \param sgy SeisISegy instance.
  * return number of text headers in file.
  */
-size_t seis_isegy_get_text_headers_num(SeisISegy const*sgy);
+size_t seis_isegy_get_text_headers_num(SeisISegy const *sgy);
 
 /**
  * \fn seis_isegy_get_text_header
@@ -90,7 +90,7 @@ size_t seis_isegy_get_text_headers_num(SeisISegy const*sgy);
  * \param idx index of tet header. main headers index 0
  * \return nonNULL. Zero terminated header. You should not free this memory.
  */
-char const*seis_isegy_get_text_header(SeisISegy const*sgy, size_t idx);
+char const *seis_isegy_get_text_header(SeisISegy const *sgy, size_t idx);
 
 /**
  * \fn seis_isegy_get_binary_header
@@ -98,13 +98,21 @@ char const*seis_isegy_get_text_header(SeisISegy const*sgy, size_t idx);
  * \param sgy SeisISegy instance.
  * \return nonNULL. You should not free this memory.
  */
-SeisSegyBinHdr const*seis_isegy_get_binary_header(SeisISegy const*sgy);
+SeisSegyBinHdr const *seis_isegy_get_binary_header(SeisISegy const *sgy);
 
 /**
  * \fn seis_isegy_end_of_data
  * \brief Checks if it is possible to read one more trace.
+ * \param sgy SeisISegy instance.
  * \return true if end of file reached
  */
-bool seis_isegy_end_of_data(SeisISegy const*sgy);
+bool seis_isegy_end_of_data(SeisISegy const *sgy);
+
+/**
+ * \fn seis_isegy_rewind
+ * \brief Lets start reading data from first trace.
+ * \param sgy SeisISegy instance.
+ */
+void seis_isegy_rewind(SeisISegy *sgy);
 
 #endif /* SEIS_SEGY_H */

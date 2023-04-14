@@ -12,3 +12,24 @@ test('Test trace reading from SEGY in 2b integer encoding', read_trace,
   args : '../samples/2I.sgy')
 test('Test trace reading from SEGY in 4b integer encoding', read_trace,
   args : '../samples/4I.sgy')
+
+read_trace_header = executable('read_trace_header', 'read_trace_header.c',
+  include_directories : inc,
+  link_with : SeisSegy,
+  dependencies : seistrace_dep)
+test('Test trace header reading from SEGY', read_trace_header,
+  args : '../samples/ibm.sgy')
+
+read_all_traces = executable('read_all_traces', 'read_all_traces.c',
+  include_directories : inc,
+  link_with : SeisSegy,
+  dependencies : seistrace_dep)
+test('Test reading all traces from SEGY', read_all_traces,
+  args : '../samples/ibm.sgy')
+
+read_all_headers = executable('read_all_headers', 'read_all_headers.c',
+  include_directories : inc,
+  link_with : SeisSegy,
+  dependencies : seistrace_dep)
+test('Test reading all trace headers from SEGY', read_all_headers,
+  args : '../samples/ibm.sgy')

@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
 	SeisISegy *sgy = seis_isegy_new();
 	if (!sgy)
 		return 1;
-	SeisSegyErr const*err = seis_isegy_get_error(sgy);
+	SeisSegyErr const *err = seis_isegy_get_error(sgy);
 	SeisTrace *trc = NULL;
 	seis_isegy_open(sgy, argv[1]);
 	if (err->code)

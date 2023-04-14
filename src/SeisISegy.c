@@ -9,8 +9,7 @@
 #include <string.h>
 #include "SeisISegy.h"
 #include "SeisCommonSegy.h"
-
-#define TRY(x) do { if (x) goto error; } while (0)
+#include "TRY.h"
 
 struct SeisISegy {
 	SeisCommonSegy *com;
@@ -37,7 +36,7 @@ struct SeisISegy {
 static SeisSegyErrCode fill_from_file(SeisISegy *sgy, char *buf, size_t num);
 static void 		   file_skip_bytes(SeisISegy *sgy, size_t num);
 static SeisSegyErrCode read_text_header(SeisISegy *sgy,
-						void (*add_func)(SeisCommonSegy*, char*), int num);
+						void (*add_func)(SeisCommonSegy*, char const*), int num);
 static SeisSegyErrCode read_bin_header(SeisISegy *sgy);
 static SeisSegyErrCode assign_raw_readers(SeisISegy *sgy);
 static SeisSegyErrCode assign_sample_reader(SeisISegy *sgy);
@@ -127,7 +126,7 @@ SeisSegyErr const*seis_isegy_get_error(SeisISegy const*sgy)
 SeisSegyErrCode seis_isegy_open(SeisISegy *sgy, char const *file_name)
 {
 	SeisCommonSegy *com = sgy->com;
-	assert(!com->file);
+	assert(!com->file); /* open func must be called only once */
 	com->file = fopen(file_name, "r");
 	if (!com->file) {
 		com->err.code = SEIS_SEGY_ERR_FILE_OPEN;
@@ -182,11 +181,12 @@ SeisTraceHeader *seis_isegy_read_trace_header(SeisISegy *sgy)
 		goto error;
 	TRY(read_trc_hdr(sgy, hdr));
 	sgy->skip_trc_smpls(sgy, hdr);
+	return hdr;
 error:
 	return NULL;
 }
 
-SeisSegyBinHdr const*seis_isegy_get_binary_header(SeisISegy const*sgy)
+SeisSegyBinHdr const* seis_isegy_get_binary_header(SeisISegy const*sgy)
 {
 	return &sgy->com->bin_hdr;
 }
@@ -199,6 +199,12 @@ size_t seis_isegy_get_text_headers_num(SeisISegy const*sgy)
 char const*seis_isegy_get_text_header(SeisISegy const*sgy, size_t idx)
 {
 	return seis_common_get_text_header(sgy->com, idx);
+}
+
+void seis_isegy_rewind(SeisISegy *sgy)
+{
+	fseek(sgy->com->file, sgy->first_trace_pos, SEEK_SET);
+	sgy->curr_pos = sgy->first_trace_pos;
 }
 
 SeisSegyErrCode fill_from_file(SeisISegy *sgy, char *buf, size_t num)
@@ -220,7 +226,7 @@ void file_skip_bytes(SeisISegy *sgy, size_t num)
 }
 
 SeisSegyErrCode read_text_header(SeisISegy *sgy,
-								 void (*add_func)(SeisCommonSegy*, char*),
+								 void (*add_func)(SeisCommonSegy*, char const*),
 								 int num)
 {
 	SeisCommonSegy *com = sgy->com;
@@ -471,9 +477,10 @@ SeisSegyErrCode read_trailer_stanzas(SeisISegy *sgy)
 			}
 			/* if traces has fixed length */
 			if (com->bin_hdr.fixed_tr_length) {
+				/* assums that fixed length trace should have fixed additional trace headers */
 				fseek(com->file, (com->bytes_per_sample * com->samp_per_tr +
-					  TRACE_HEADER_SIZE) * com->bin_hdr.num_of_tr_in_file,
-					  SEEK_CUR);
+					  TRACE_HEADER_SIZE * com->bin_hdr.max_num_add_tr_headers) *
+					  com->bin_hdr.num_of_tr_in_file, SEEK_CUR);
 				sgy->end_of_data = ftell(com->file);
 				char *end_stanza = "((SEG: EndText))";
 				while (1) {
@@ -555,7 +562,7 @@ SeisSegyErrCode read_trc_smpls_var(SeisISegy *sgy, SeisTraceHeader *hdr,
 								   SeisTrace **trc)
 {
 	SeisCommonSegy *com = sgy->com;
-	long long *samp_num = seis_trace_header_get_int(hdr, "SAMP_NUM");
+	long long const *samp_num = seis_trace_header_get_int(hdr, "SAMP_NUM");
 	if (!samp_num) {
 		com->err.code = SEIS_SEGY_ERR_BROKEN_FILE;
 		com->err.message = "variable trace length and zero samples number";
@@ -585,19 +592,21 @@ SeisSegyErrCode skip_trc_smpls_fix(SeisISegy *sgy, SeisTraceHeader *hdr)
 {
 	SeisCommonSegy *com = sgy->com;
 	fseek(com->file, com->bytes_per_sample * com->samp_per_tr, SEEK_CUR);
+	sgy->curr_pos = ftell(com->file);
 	return com->err.code;
 }
 
 SeisSegyErrCode skip_trc_smpls_var(SeisISegy *sgy, SeisTraceHeader *hdr)
 {
 	SeisCommonSegy *com = sgy->com;
-	long long *samp_num = seis_trace_header_get_int(hdr, "SAMP_NUM");
+	long long const *samp_num = seis_trace_header_get_int(hdr, "SAMP_NUM");
 	if (!samp_num) {
 		com->err.code = SEIS_SEGY_ERR_BROKEN_FILE;
 		com->err.message = "variable trace length and zero samples number";
 		goto error;
 	}
 	fseek(com->file, com->bytes_per_sample * *samp_num, SEEK_CUR);
+	sgy->curr_pos = ftell(com->file);
 error:
 	return com->err.code;
 }
