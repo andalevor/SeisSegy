@@ -133,7 +133,7 @@ SeisSegyErrCode seis_isegy_open(SeisISegy *sgy, char const *file_name)
 		com->err.message = "file open error";
 		goto error;
 	}
-	TRY(read_text_header(sgy, seis_common_add_text_header, 1));
+	TRY(read_text_header(sgy, seis_common_segy_add_text_header, 1));
 	TRY(read_bin_header(sgy));
 	TRY(assign_sample_reader(sgy));
 	assign_bytes_per_sample(sgy);
@@ -193,12 +193,12 @@ SeisSegyBinHdr const* seis_isegy_get_binary_header(SeisISegy const*sgy)
 
 size_t seis_isegy_get_text_headers_num(SeisISegy const*sgy)
 {
-	return seis_common_get_text_headers_num(sgy->com);
+	return seis_common_segy_get_text_headers_num(sgy->com);
 }
 
 char const*seis_isegy_get_text_header(SeisISegy const*sgy, size_t idx)
 {
-	return seis_common_get_text_header(sgy->com, idx);
+	return seis_common_segy_get_text_header(sgy->com, idx);
 }
 
 void seis_isegy_rewind(SeisISegy *sgy)
@@ -441,14 +441,14 @@ SeisSegyErrCode read_ext_text_headers(SeisISegy *sgy)
     if (num == -1) {
         char *end_stanza = "((SEG: EndText))";
         while (1) {
-			TRY(read_text_header(sgy, seis_common_add_text_header, 1));
-			size_t hdrs_read = seis_common_get_text_headers_num(com);
-			char const *hdr = seis_common_get_text_header(com, hdrs_read - 1);
+			TRY(read_text_header(sgy, seis_common_segy_add_text_header, 1));
+			size_t hdrs_read = seis_common_segy_get_text_headers_num(com);
+			char const *hdr = seis_common_segy_get_text_header(com, hdrs_read - 1);
             if (!strstr(hdr, end_stanza))
 				goto error;
         }
     } else {
-		TRY(read_text_header(sgy, seis_common_add_text_header, num));
+		TRY(read_text_header(sgy, seis_common_segy_add_text_header, num));
     }
 	return com->err.code;
 error:
@@ -484,10 +484,10 @@ SeisSegyErrCode read_trailer_stanzas(SeisISegy *sgy)
 				sgy->end_of_data = ftell(com->file);
 				char *end_stanza = "((SEG: EndText))";
 				while (1) {
-					TRY(read_text_header(sgy, seis_common_add_stanza, 1));
-					size_t stanz_read = seis_common_get_stanzas_num(com);
+					TRY(read_text_header(sgy, seis_common_segy_add_stanza, 1));
+					size_t stanz_read = seis_common_segy_get_stanzas_num(com);
 					char const* last_stanz =
-					   	seis_common_get_stanza(com, stanz_read - 1);
+					   	seis_common_segy_get_stanza(com, stanz_read - 1);
 					if (!strstr(last_stanz, end_stanza))
 						goto error;
 				}
@@ -516,10 +516,10 @@ SeisSegyErrCode read_trailer_stanzas(SeisISegy *sgy)
 				sgy->end_of_data = ftell(com->file);
 				char *end_stanza = "((SEG: EndText))";
 				while (1) {
-					TRY(read_text_header(sgy, seis_common_add_stanza, 1));
-					size_t stanz_read = seis_common_get_stanzas_num(com);
+					TRY(read_text_header(sgy, seis_common_segy_add_stanza, 1));
+					size_t stanz_read = seis_common_segy_get_stanzas_num(com);
 					char const* last_stanz =
-					   	seis_common_get_stanza(com, stanz_read - 1);
+					   	seis_common_segy_get_stanza(com, stanz_read - 1);
 					if (!strstr(last_stanz, end_stanza))
 						goto error;
 				}
@@ -529,7 +529,7 @@ SeisSegyErrCode read_trailer_stanzas(SeisISegy *sgy)
 			fseek(com->file, com->bin_hdr.num_of_trailer_stanza *
 				  TEXT_HEADER_SIZE, SEEK_END);
 			sgy->end_of_data = ftell(com->file);
-			TRY(read_text_header(sgy, seis_common_add_stanza,
+			TRY(read_text_header(sgy, seis_common_segy_add_stanza,
 							 com->bin_hdr.num_of_trailer_stanza));
 		}
 error:

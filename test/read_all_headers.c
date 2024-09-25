@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 error:
 	if (hdr)
 		seis_trace_header_unref(hdr);
-	seis_isegy_unref(sgy);
 	printf("%s\n", err->message);
+	seis_isegy_unref(sgy);
 	return 1;
 }

@@ -55,40 +55,40 @@ void seis_common_segy_set_text_header(SeisCommonSegy *com, size_t idx,
 	string_clear(tmp);
 }
 
-void seis_common_add_text_header(SeisCommonSegy *com, char const *buf)
+void seis_common_segy_add_text_header(SeisCommonSegy *com, char const *buf)
 {
 	assert(strlen(buf) == TEXT_HEADER_SIZE);
 	SeisCommonSegyPrivate *priv = (SeisCommonSegyPrivate *)com;
 	str_arr_emplace_back(priv->text_hdrs, buf);
 }
 
-void seis_common_add_stanza(SeisCommonSegy *com, char const *buf)
+void seis_common_segy_add_stanza(SeisCommonSegy *com, char const *buf)
 {
 	assert(strlen(buf) == TEXT_HEADER_SIZE);
 	SeisCommonSegyPrivate *priv = (SeisCommonSegyPrivate *)com;
 	str_arr_emplace_back(priv->end_stanzas, buf);
 }
 
-size_t seis_common_get_text_headers_num(SeisCommonSegy const*com)
+size_t seis_common_segy_get_text_headers_num(SeisCommonSegy const*com)
 {
 	SeisCommonSegyPrivate *priv = (SeisCommonSegyPrivate *)com;
 	return str_arr_size(priv->text_hdrs);
 }
 
-char const* seis_common_get_text_header(SeisCommonSegy const*com, size_t idx)
+char const* seis_common_segy_get_text_header(SeisCommonSegy const*com, size_t idx)
 {
 	SeisCommonSegyPrivate *priv = (SeisCommonSegyPrivate *)com;
 	string_t *tmp = str_arr_get(priv->text_hdrs, idx);
 	return string_get_cstr(*tmp);
 }
 
-size_t seis_common_get_stanzas_num(SeisCommonSegy const*com)
+size_t seis_common_segy_get_stanzas_num(SeisCommonSegy const*com)
 {
 	SeisCommonSegyPrivate *priv = (SeisCommonSegyPrivate *)com;
 	return str_arr_size(priv->end_stanzas);
 }
 
-char const* seis_common_get_stanza(SeisCommonSegy const*com, size_t idx)
+char const* seis_common_segy_get_stanza(SeisCommonSegy const*com, size_t idx)
 {
 	SeisCommonSegyPrivate *priv = (SeisCommonSegyPrivate *)com;
 	string_t *tmp = str_arr_get(priv->end_stanzas, idx);

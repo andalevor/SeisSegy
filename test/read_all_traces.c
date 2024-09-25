@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
 error:
 	if (trc)
 		seis_trace_unref(trc);
-	seis_isegy_unref(sgy);
 	printf("%s\n", err->message);
+	seis_isegy_unref(sgy);
 	return 1;
 }
