@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define UNUSED(x) (void)(x)
+
 static SeisSegyErrCode assign_raw_writers(SeisOSegy *sgy);
 static SeisSegyErrCode assign_sample_writer(SeisOSegy *sgy);
 static SeisSegyErrCode assign_bytes_per_sample(SeisOSegy *sgy);
@@ -349,21 +351,20 @@ SeisSegyErrCode write_text_header(SeisOSegy *sgy) {
                         com->err.code = SEIS_SEGY_ERR_NO_MEM;
                         com->err.message = "no memory for text header";
                 }
+                char const *def_hdr;
                 switch (com->bin_hdr.SEGY_rev_major_ver) {
                 case 0:
                 default:
-                        strncpy(buf, seis_segy_default_text_header_rev0,
-                                TEXT_HEADER_SIZE);
+                        def_hdr = seis_segy_default_text_header_rev0;
                         break;
                 case 1:
-                        strncpy(buf, seis_segy_default_text_header_rev1,
-                                TEXT_HEADER_SIZE);
+                        def_hdr = seis_segy_default_text_header_rev1;
                         break;
                 case 2:
-                        strncpy(buf, seis_segy_default_text_header_rev2,
-                                TEXT_HEADER_SIZE);
+                        def_hdr = seis_segy_default_text_header_rev2;
                         break;
                 }
+                memcpy(buf, def_hdr, TEXT_HEADER_SIZE);
                 ascii_to_ebcdic(buf);
                 hdr = buf;
         } else {
@@ -756,7 +757,8 @@ SeisSegyErrCode write_trace_samples_fix(SeisOSegy *sgy, SeisTrace const *t) {
         size_t written =
             fwrite(com->samp_buf, 1, com->bytes_per_sample * com->samp_per_tr,
                    com->file);
-        if (written != com->bytes_per_sample * com->samp_per_tr) {
+        if (written !=
+            (size_t)com->bytes_per_sample * (size_t)com->samp_per_tr) {
                 com->err.code = SEIS_SEGY_ERR_FILE_WRITE;
                 com->err.message = "i/o error on fixed trace writing";
         }
@@ -785,6 +787,8 @@ error:
 }
 
 SeisSegyErrCode dummy(SeisOSegy *sgy, SeisTraceHeader const *hdr) {
+        UNUSED(sgy);
+        UNUSED(hdr);
         return SEIS_SEGY_ERR_OK;
 }
 

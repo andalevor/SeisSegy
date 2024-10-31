@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define UNUSED(x) (void)(x)
+
 struct SeisISegy {
         SeisCommonSegy *com;
         long curr_pos, first_trace_pos, end_of_data;
@@ -611,6 +613,7 @@ error:
 }
 
 SeisSegyErrCode skip_trc_smpls_fix(SeisISegy *sgy, SeisTraceHeader *hdr) {
+        UNUSED(hdr);
         SeisCommonSegy *com = sgy->com;
         fseek(com->file, com->bytes_per_sample * com->samp_per_tr, SEEK_CUR);
         sgy->curr_pos = ftell(com->file);
