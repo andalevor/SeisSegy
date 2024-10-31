@@ -22,7 +22,7 @@ typedef struct SeisOSegy SeisOSegy;
  * \brief Initiates SeisOSegy instance.
  * \return Initiated SeisOSegy or NULL.
  */
-SeisOSegy* seis_osegy_new();
+SeisOSegy *seis_osegy_new();
 
 /**
  * \fn seis_osegy_ref
@@ -30,14 +30,14 @@ SeisOSegy* seis_osegy_new();
  * \param pointer to SeisOSegy instance.
  * \return pointer to SeisOSegy
  */
-SeisOSegy* seis_osegy_ref(SeisOSegy* sgy);
+SeisOSegy *seis_osegy_ref(SeisOSegy *sgy);
 
 /**
  * \fn seis_osegy_unref
  * \brief free memory.
  * \param sgy pointer to SeisOSegy instance.
  */
-void seis_osegy_unref(SeisOSegy* sgy);
+void seis_osegy_unref(SeisOSegy *sgy);
 
 /**
  * \fn seis_osegy_get_error
@@ -45,7 +45,7 @@ void seis_osegy_unref(SeisOSegy* sgy);
  * \param sgy pointer to SeisOSegy instance.
  * \return error code to check
  */
-SeisSegyErr const* seis_osegy_get_error(SeisOSegy const* sgy);
+SeisSegyErr const *seis_osegy_get_error(SeisOSegy const *sgy);
 
 /**
  * \fn seis_osegy_set_binary_header
@@ -53,7 +53,7 @@ SeisSegyErr const* seis_osegy_get_error(SeisOSegy const* sgy);
  * \param sgy to SeisOSegy instance.
  * \param bh will be copied by value
  */
-void seis_osegy_set_binary_header(SeisOSegy* sgy, SeisSegyBinHdr const* bh);
+void seis_osegy_set_binary_header(SeisOSegy *sgy, SeisSegyBinHdr const *bh);
 
 /**
  * \fn seis_osegy_set_text_header
@@ -61,7 +61,7 @@ void seis_osegy_set_binary_header(SeisOSegy* sgy, SeisSegyBinHdr const* bh);
  * \param sgy pointer to SeisOSegy instance
  * \param hdr text header. must have 3200 chars
  */
-void seis_osegy_set_text_header(SeisOSegy* sgy, char const* hdr);
+void seis_osegy_set_text_header(SeisOSegy *sgy, char const *hdr);
 
 /**
  * \fn seis_osegy_open
@@ -70,7 +70,7 @@ void seis_osegy_set_text_header(SeisOSegy* sgy, char const* hdr);
  * \param file_name name of the file to open
  * \return error code to check
  */
-SeisSegyErrCode seis_osegy_open(SeisOSegy* sgy, char const* file_name);
+SeisSegyErrCode seis_osegy_open(SeisOSegy *sgy, char const *file_name);
 
 /**
  * \fn seis_osegy_add_ext_text_header
@@ -78,7 +78,7 @@ SeisSegyErrCode seis_osegy_open(SeisOSegy* sgy, char const* file_name);
  * \param sgy pointer to SeisOSegy instance
  * \param hdr text header. must have 3200 chars
  */
-void seis_osegy_add_ext_text_header(SeisOSegy* sgy, char* hdr);
+void seis_osegy_add_ext_text_header(SeisOSegy *sgy, char *hdr);
 
 /**
  * \fn seis_osegy_add_traler_stanza
@@ -86,7 +86,7 @@ void seis_osegy_add_ext_text_header(SeisOSegy* sgy, char* hdr);
  * \param sgy pointer to SeisOSegy instance
  * \param hdr text header. must have 3200 chars
  */
-void seis_osegy_add_traler_stanza(SeisOSegy* sgy, char* buf);
+void seis_osegy_add_traler_stanza(SeisOSegy *sgy, char *buf);
 
 /**
  * \fn seis_osegy_write_trace
@@ -95,6 +95,6 @@ void seis_osegy_add_traler_stanza(SeisOSegy* sgy, char* buf);
  * \param trc Pointer to trace structure to write.
  * \return error code to check
  */
-SeisSegyErrCode seis_osegy_write_trace(SeisOSegy* sgy, SeisTrace const* trc);
+SeisSegyErrCode seis_osegy_write_trace(SeisOSegy *sgy, SeisTrace const *trc);
 
 #endif /* SEIS_OSEGY_H */

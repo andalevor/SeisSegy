@@ -13,13 +13,13 @@
  * \brief change every byte in string from ebcdic to ascii encoding.
  * \param s null terminated string
  */
-void ebcdic_to_ascii(char* s);
+void ebcdic_to_ascii(char *s);
 
 /**
  * \fn ascii_to_ebcdic
  * \brief change every byte in string from ascii to ebcdic encoding.
  * \param s null terminated string
  */
-void ascii_to_ebcdic(char* s);
+void ascii_to_ebcdic(char *s);
 
 #endif /* SEIS_ENCODINGS_H */

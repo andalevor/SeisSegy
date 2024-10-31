@@ -9,9 +9,9 @@
 #define TRY_H
 
 #define TRY(x)                                                                 \
-  do {                                                                         \
-    if (x)                                                                     \
-      goto error;                                                              \
-  } while (0)
+        do {                                                                   \
+                if (x)                                                         \
+                        goto error;                                            \
+        } while (0)
 
 #endif /* TRY.h */

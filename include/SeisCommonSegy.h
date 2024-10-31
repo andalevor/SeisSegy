@@ -21,50 +21,50 @@
  * \brief SEGY binary header struct
  */
 typedef struct SeisSegyBinHdr {
-    int32_t job_id;
-    int32_t line_num;
-    int32_t reel_num;
-    int16_t tr_per_ens;
-    int16_t aux_per_ens;
-    int16_t samp_int;
-    int16_t samp_int_orig;
-    int16_t samp_per_tr;
-    int16_t samp_per_tr_orig;
-    int16_t format_code;
-    int16_t ens_fold;
-    int16_t sort_code;
-    int16_t vert_sum_code;
-    int16_t sw_freq_at_start;
-    int16_t sw_freq_at_end;
-    int16_t sw_length;
-    int16_t sw_type_code;
-    int16_t sw_ch_tr_num;
-    int16_t taper_at_start;
-    int16_t taper_at_end;
-    int16_t taper_type;
-    int16_t corr_traces;
-    int16_t bin_gain_recov;
-    int16_t amp_recov_meth;
-    int16_t measure_system;
-    int16_t impulse_sig_pol;
-    int16_t vib_pol_code;
-    int32_t ext_tr_per_ens;
-    int32_t ext_aux_per_ens;
-    int32_t ext_samp_per_tr;
-    double ext_samp_int;
-    double ext_samp_int_orig;
-    int32_t ext_samp_per_tr_orig;
-    int32_t ext_ens_fold;
-    int32_t endianness;
-    uint8_t SEGY_rev_major_ver;
-    uint8_t SEGY_rev_minor_ver;
-    int16_t fixed_tr_length;
-    int16_t ext_text_headers_num;
-    int32_t max_num_add_tr_headers;
-    int16_t time_basis_code;
-    uint64_t num_of_tr_in_file;
-    uint64_t byte_off_of_first_tr;
-    int32_t num_of_trailer_stanza;
+        int32_t job_id;
+        int32_t line_num;
+        int32_t reel_num;
+        int16_t tr_per_ens;
+        int16_t aux_per_ens;
+        int16_t samp_int;
+        int16_t samp_int_orig;
+        int16_t samp_per_tr;
+        int16_t samp_per_tr_orig;
+        int16_t format_code;
+        int16_t ens_fold;
+        int16_t sort_code;
+        int16_t vert_sum_code;
+        int16_t sw_freq_at_start;
+        int16_t sw_freq_at_end;
+        int16_t sw_length;
+        int16_t sw_type_code;
+        int16_t sw_ch_tr_num;
+        int16_t taper_at_start;
+        int16_t taper_at_end;
+        int16_t taper_type;
+        int16_t corr_traces;
+        int16_t bin_gain_recov;
+        int16_t amp_recov_meth;
+        int16_t measure_system;
+        int16_t impulse_sig_pol;
+        int16_t vib_pol_code;
+        int32_t ext_tr_per_ens;
+        int32_t ext_aux_per_ens;
+        int32_t ext_samp_per_tr;
+        double ext_samp_int;
+        double ext_samp_int_orig;
+        int32_t ext_samp_per_tr_orig;
+        int32_t ext_ens_fold;
+        int32_t endianness;
+        uint8_t SEGY_rev_major_ver;
+        uint8_t SEGY_rev_minor_ver;
+        int16_t fixed_tr_length;
+        int16_t ext_text_headers_num;
+        int32_t max_num_add_tr_headers;
+        int16_t time_basis_code;
+        uint64_t num_of_tr_in_file;
+        uint64_t byte_off_of_first_tr;
+        int32_t num_of_trailer_stanza;
 } SeisSegyBinHdr;
 
 /**
@@ -72,14 +72,14 @@ typedef struct SeisSegyBinHdr {
  * \brief Enumeration for error codes.
  */
 typedef enum SeisSegyErrCode {
-    SEIS_SEGY_ERR_OK,
-    SEIS_SEGY_ERR_FILE_OPEN,
-    SEIS_SEGY_ERR_FILE_READ,
-    SEIS_SEGY_ERR_NO_MEM,
-    SEIS_SEGY_ERR_UNKNOWN_ENDIANNESS,
-    SEIS_SEGY_ERR_UNSUPPORTED_FORMAT,
-    SEIS_SEGY_ERR_BROKEN_FILE,
-    SEIS_SEGY_ERR_FILE_WRITE,
+        SEIS_SEGY_ERR_OK,
+        SEIS_SEGY_ERR_FILE_OPEN,
+        SEIS_SEGY_ERR_FILE_READ,
+        SEIS_SEGY_ERR_NO_MEM,
+        SEIS_SEGY_ERR_UNKNOWN_ENDIANNESS,
+        SEIS_SEGY_ERR_UNSUPPORTED_FORMAT,
+        SEIS_SEGY_ERR_BROKEN_FILE,
+        SEIS_SEGY_ERR_FILE_WRITE,
 } SeisSegyErrCode;
 
 /**
@@ -87,8 +87,8 @@ typedef enum SeisSegyErrCode {
  * \brief Type for SEGY manipulations error checking.
  */
 typedef struct SeisSegyErr {
-    SeisSegyErrCode code;
-    char* message;
+        SeisSegyErrCode code;
+        char *message;
 } SeisSegyErr;
 
 /**
@@ -96,12 +96,12 @@ typedef struct SeisSegyErr {
  * \brief SEGY common parts.
  */
 typedef struct SeisCommonSegy {
-    struct SeisSegyBinHdr bin_hdr;
-    struct SeisSegyErr err;
-    FILE* file;
-    char *samp_buf, *hdr_buf;
-    int bytes_per_sample;
-    long samp_per_tr;
+        struct SeisSegyBinHdr bin_hdr;
+        struct SeisSegyErr err;
+        FILE *file;
+        char *samp_buf, *hdr_buf;
+        int bytes_per_sample;
+        long samp_per_tr;
 } SeisCommonSegy;
 
 /**
@@ -109,14 +109,14 @@ typedef struct SeisCommonSegy {
  * \brief Initiates SeisCommonSegy instance.
  * \return Initiated SeisCommonSegy or NULL.
  */
-SeisCommonSegy* seis_common_segy_new();
+SeisCommonSegy *seis_common_segy_new();
 
 /**
  * \fn seis_common_segy_unref
  * \brief Frees memory.
  * \param com Pointer to SeisCommonSegy object.
  */
-void seis_common_segy_unref(SeisCommonSegy* com);
+void seis_common_segy_unref(SeisCommonSegy *com);
 
 /**
  * \fn seis_common_segy_set_text_header
@@ -125,8 +125,8 @@ void seis_common_segy_unref(SeisCommonSegy* com);
  * \param idx index of header. must be less than number of headers
  * \param hdr text header. must have 3200 chars length
  */
-void seis_common_segy_set_text_header(SeisCommonSegy* com, size_t idx,
-    char const* hdr);
+void seis_common_segy_set_text_header(SeisCommonSegy *com, size_t idx,
+                                      char const *hdr);
 
 /**
  * \fn seis_common_add_text_header
@@ -134,7 +134,7 @@ void seis_common_segy_set_text_header(SeisCommonSegy* com, size_t idx,
  * \param com Pointer to SeisCommonSegy object.
  * \param com Pointer to buffer with header.
  */
-void seis_common_segy_add_text_header(SeisCommonSegy* com, char const* buf);
+void seis_common_segy_add_text_header(SeisCommonSegy *com, char const *buf);
 
 /**
  * \fn seis_common_add_stanza
@@ -142,7 +142,7 @@ void seis_common_segy_add_text_header(SeisCommonSegy* com, char const* buf);
  * \param com Pointer to SeisCommonSegy object.
  * \param com Pointer to buffer with stanza.
  */
-void seis_common_segy_add_stanza(SeisCommonSegy* com, char const* buf);
+void seis_common_segy_add_stanza(SeisCommonSegy *com, char const *buf);
 
 /**
  * \fn seis_common_get_text_headers_num
@@ -150,7 +150,7 @@ void seis_common_segy_add_stanza(SeisCommonSegy* com, char const* buf);
  * \param com Pointer to SeisCommonSegy object.
  * \return number of text headers.
  */
-size_t seis_common_segy_get_text_headers_num(SeisCommonSegy const* com);
+size_t seis_common_segy_get_text_headers_num(SeisCommonSegy const *com);
 
 /**
  * \fn seis_common_get_text_header
@@ -159,7 +159,8 @@ size_t seis_common_segy_get_text_headers_num(SeisCommonSegy const* com);
  * \prarm idx Index of desired text header from 0 to text_headers_num - 1.
  * \return Pointer to header. Should not be freed.
  */
-char const* seis_common_segy_get_text_header(SeisCommonSegy const* com, size_t idx);
+char const *seis_common_segy_get_text_header(SeisCommonSegy const *com,
+                                             size_t idx);
 
 /**
  * \fn seis_common_get_stanzas_num
@@ -167,7 +168,7 @@ char const* seis_common_segy_get_text_header(SeisCommonSegy const* com, size_t i
  * \param com Pointer to SeisCommonSegy object.
  * \return number of stanzas.
  */
-size_t seis_common_segy_get_stanzas_num(SeisCommonSegy const* com);
+size_t seis_common_segy_get_stanzas_num(SeisCommonSegy const *com);
 
 /**
  * \fn seis_common_get_stanza
@@ -176,21 +177,21 @@ size_t seis_common_segy_get_stanzas_num(SeisCommonSegy const* com);
  * \prarm idx Index of desired end stanza from 0 to end_stanzas_num - 1.
  * \return Pointer to stanza. Should not be freed.
  */
-char const* seis_common_segy_get_stanza(SeisCommonSegy const* com, size_t idx);
+char const *seis_common_segy_get_stanza(SeisCommonSegy const *com, size_t idx);
 
 /**
  * \brief Text header from SEGY revision 0 standard
  */
-extern char const* seis_segy_default_text_header_rev0;
+extern char const *seis_segy_default_text_header_rev0;
 
 /**
  * \brief Text header from SEGY revision 1 standard
  */
-extern char const* seis_segy_default_text_header_rev1;
+extern char const *seis_segy_default_text_header_rev1;
 
 /**
  * \brief Text header from SEGY revision 2 standard
  */
-extern char const* seis_segy_default_text_header_rev2;
+extern char const *seis_segy_default_text_header_rev2;
 
 #endif /* SEIS_COMMON_SEGY_H */

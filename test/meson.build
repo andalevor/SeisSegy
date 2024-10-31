@@ -48,9 +48,17 @@ ascii_to_ebcdic = executable('ascii_to_ebcdic', 'ascii_to_ebcdic.c',
 test('Test reading and converting text header', ascii_to_ebcdic,
   args : '../samples/ibm.sgy')
 
-# write_rev0 = executable('write_rev0', 'write_rev0.c',
-#   include_directories : inc,
-#   link_with : SeisSegy,
-#   dependencies : seistrace_dep)
-# test('Test SEGY revision 0 writing', write_rev0,
-#   args : '../samples/ibm.sgy')
+read_write = executable('read_write', 'read_write.c',
+  include_directories : inc,
+  link_with : SeisSegy,
+  dependencies : seistrace_dep)
+test('Test SEGY reading and writing IBM FP', read_write,
+  args : '../samples/ibm.sgy')
+test('Test SEGY reading and writing IEEE single', read_write,
+  args : '../samples/ieee_single.sgy')
+test('Test SEGY reading and writing 1I', read_write,
+  args : '../samples/1I.sgy')
+test('Test SEGY reading and writing 2I', read_write,
+  args : '../samples/2I.sgy')
+test('Test SEGY reading and writing 4I', read_write,
+  args : '../samples/4I.sgy')
