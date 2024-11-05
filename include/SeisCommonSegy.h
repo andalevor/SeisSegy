@@ -8,6 +8,7 @@
 #ifndef SEIS_COMMON_SEGY_H
 #define SEIS_COMMON_SEGY_H
 
+#include <SeisTrace.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -15,6 +16,8 @@
 #define TEXT_HEADER_SIZE 3200
 #define BIN_HEADER_SIZE 400
 #define TRACE_HEADER_SIZE 240
+
+enum FORMAT { i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, b64 };
 
 /**
  * \struct SeisSegyBinHdr
@@ -80,6 +83,7 @@ typedef enum SeisSegyErrCode {
         SEIS_SEGY_ERR_UNSUPPORTED_FORMAT,
         SEIS_SEGY_ERR_BROKEN_FILE,
         SEIS_SEGY_ERR_FILE_WRITE,
+        SEIS_SEGY_ERR_BAD_PARAMS,
 } SeisSegyErrCode;
 
 /**
@@ -109,14 +113,14 @@ typedef struct SeisCommonSegy {
  * \brief Initiates SeisCommonSegy instance.
  * \return Initiated SeisCommonSegy or NULL.
  */
-SeisCommonSegy *seis_common_segy_new();
+SeisCommonSegy *seis_common_segy_new(void);
 
 /**
  * \fn seis_common_segy_unref
  * \brief Frees memory.
  * \param com Pointer to SeisCommonSegy object.
  */
-void seis_common_segy_unref(SeisCommonSegy *com);
+void seis_common_segy_unref(SeisCommonSegy **com);
 
 /**
  * \fn seis_common_segy_set_text_header
@@ -193,5 +197,21 @@ extern char const *seis_segy_default_text_header_rev1;
  * \brief Text header from SEGY revision 2 standard
  */
 extern char const *seis_segy_default_text_header_rev2;
+
+/**
+ * \fn seis_common_segy_remap_trace_header
+ * \brief changes header reading parameters
+ * offset + size of format should not exceed 240
+ * \param sgy SeisISegy instance
+ * \param hdr_name Name of header to remap
+ * \param hdr_num Number of header to remap. Main header is 1, additional is 2..
+ * \param offset Byte offset inside header. Should be in range 1-240.
+ * \param fmt Format of header to read.
+ * \return Error code.
+ */
+SeisSegyErrCode seis_common_remap_trace_header(SeisCommonSegy *sgy,
+                                               char const *hdr_name,
+                                               int hdr_num, int offset,
+                                               enum FORMAT fmt);
 
 #endif /* SEIS_COMMON_SEGY_H */

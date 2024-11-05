@@ -24,7 +24,7 @@ typedef struct SeisISegy SeisISegy;
  * \brief Initiates SeisISegy instance.
  * \return NULLable.
  */
-SeisISegy *seis_isegy_new();
+SeisISegy *seis_isegy_new(void);
 
 /**
  * \fn seis_isegy_ref
@@ -39,7 +39,7 @@ SeisISegy *seis_isegy_ref(SeisISegy *sgy);
  * \brief Frees memory.
  * \param sgy Pointer to SeisISegy object.
  */
-void seis_isegy_unref(SeisISegy *sgy);
+void seis_isegy_unref(SeisISegy **sgy);
 
 /**
  * \fn seis_isegy_get_error
@@ -68,7 +68,6 @@ SeisTrace *seis_isegy_read_trace(SeisISegy *sgy);
 /**
  * \fn seis_isegy_read_trace_header
  * \brief Reads current trace header from file.
- * SeisISegy should be created in 'r' mode.
  * \param sgy SeisISegy instance.
  * \return NULLable. You should free this memory.
  */
@@ -113,5 +112,20 @@ bool seis_isegy_end_of_data(SeisISegy const *sgy);
  * \param sgy SeisISegy instance.
  */
 void seis_isegy_rewind(SeisISegy *sgy);
+
+/**
+ * \fn seis_isegy_remap_trace_header
+ * \brief changes header reading parameters
+ * offset + size of format should not exceed 240
+ * \param sgy SeisISegy instance
+ * \param hdr_name Name of header to remap
+ * \param hdr_num Number of header to remap. Main header is 1, additional is 2..
+ * \param offset Byte offset inside header. Should be in range 1-240.
+ * \param fmt Format of header to read.
+ * \return Error code.
+ */
+SeisSegyErrCode seis_isegy_remap_trace_header(SeisISegy *sgy,
+                                              char const *hdr_name, int hdr_num,
+                                              int offset, enum FORMAT fmt);
 
 #endif /* SEIS_SEGY_H */

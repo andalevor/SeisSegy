@@ -29,10 +29,10 @@ int main(int argc, char *argv[]) {
         printf("\nConverted:\n");
         print_text_header(mhdr);
         free(mhdr);
-        seis_isegy_unref(sgy);
+        seis_isegy_unref(&sgy);
         return 0;
 error:
-        seis_isegy_unref(sgy);
+        seis_isegy_unref(&sgy);
         return 1;
 }
 

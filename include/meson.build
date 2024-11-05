@@ -1,1 +1,1 @@
-install_headers(['SeisISegy.h', 'SeisCommonSegy.h', 'SeisEncodings.h'])
+install_headers(['SeisISegy.h', 'SeisCommonSegy.h', 'SeisEncodings.h', 'SeisOSegy.h'])

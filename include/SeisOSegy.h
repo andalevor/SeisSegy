@@ -22,7 +22,7 @@ typedef struct SeisOSegy SeisOSegy;
  * \brief Initiates SeisOSegy instance.
  * \return Initiated SeisOSegy or NULL.
  */
-SeisOSegy *seis_osegy_new();
+SeisOSegy *seis_osegy_new(void);
 
 /**
  * \fn seis_osegy_ref
@@ -34,10 +34,10 @@ SeisOSegy *seis_osegy_ref(SeisOSegy *sgy);
 
 /**
  * \fn seis_osegy_unref
- * \brief free memory.
+ * \brief free memory and writes trailer stanzas
  * \param sgy pointer to SeisOSegy instance.
  */
-void seis_osegy_unref(SeisOSegy *sgy);
+void seis_osegy_unref(SeisOSegy **sgy);
 
 /**
  * \fn seis_osegy_get_error
@@ -96,5 +96,20 @@ void seis_osegy_add_traler_stanza(SeisOSegy *sgy, char *buf);
  * \return error code to check
  */
 SeisSegyErrCode seis_osegy_write_trace(SeisOSegy *sgy, SeisTrace const *trc);
+
+/**
+ * \fn seis_0segy_remap_trace_header
+ * \brief changes header reading parameters
+ * offset + size of format should not exceed 240
+ * \param sgy SeisOSegy instance
+ * \param hdr_name Name of header to remap
+ * \param hdr_num Number of header to remap. Main header is 1, additional is 2..
+ * \param offset Byte offset inside header. Should be in range 1-240.
+ * \param fmt Format of header to write.
+ * \return Error code.
+ */
+SeisSegyErrCode seis_osegy_remap_trace_header(SeisOSegy *sgy,
+                                              char const *hdr_name, int hdr_num,
+                                              int offset, enum FORMAT fmt);
 
 #endif /* SEIS_OSEGY_H */

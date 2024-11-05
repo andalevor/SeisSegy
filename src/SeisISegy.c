@@ -1,5 +1,6 @@
 #include "SeisISegy.h"
 #include "SeisCommonSegy.h"
+#include "SeisCommonSegyPrivate.h"
 #include "TRY.h"
 #include <SeisTrace.h>
 #include <assert.h>
@@ -53,6 +54,8 @@ static SeisSegyErrCode read_trc_smpls_var(SeisISegy *sgy, SeisTraceHeader *hdr,
 static SeisSegyErrCode read_trc_hdr(SeisISegy *sgy, SeisTraceHeader *hdr);
 static SeisSegyErrCode skip_trc_smpls_fix(SeisISegy *sgy, SeisTraceHeader *hdr);
 static SeisSegyErrCode skip_trc_smpls_var(SeisISegy *sgy, SeisTraceHeader *hdr);
+static void fill_hdr_from_fmt_arr(SeisISegy *sgy, single_hdr_fmt_t *arr,
+                                  SeisTraceHeader *hdr);
 
 static int8_t read_i8(char const **buf);
 static uint8_t read_u8(char const **buf);
@@ -88,7 +91,7 @@ static double dbl_from_u32(SeisISegy *sgy, char const **buf);
 static double dbl_from_i64(SeisISegy *sgy, char const **buf);
 static double dbl_from_u64(SeisISegy *sgy, char const **buf);
 
-SeisISegy *seis_isegy_new() {
+SeisISegy *seis_isegy_new(void) {
         SeisISegy *sgy = (SeisISegy *)malloc(sizeof(struct SeisISegy));
         if (!sgy)
                 goto error;
@@ -104,11 +107,13 @@ SeisISegy *seis_isegy_ref(SeisISegy *sgy) {
         return sgy;
 }
 
-void seis_isegy_unref(SeisISegy *sgy) {
-        if (--sgy->rc == 0) {
-                seis_common_segy_unref(sgy->com);
-                free(sgy);
-        }
+void seis_isegy_unref(SeisISegy **sgy) {
+        if (*sgy)
+                if (--(*sgy)->rc == 0) {
+                        seis_common_segy_unref(&(*sgy)->com);
+                        free(*sgy);
+                        *sgy = NULL;
+                }
 }
 
 bool seis_isegy_end_of_data(SeisISegy const *sgy) {
@@ -183,6 +188,13 @@ error:
 
 SeisSegyBinHdr const *seis_isegy_get_binary_header(SeisISegy const *sgy) {
         return &sgy->com->bin_hdr;
+}
+
+SeisSegyErrCode seis_isegy_remap_trace_header(SeisISegy *sgy,
+                                              char const *hdr_name, int hdr_num,
+                                              int offset, enum FORMAT fmt) {
+        return seis_common_remap_trace_header(sgy->com, hdr_name, hdr_num,
+                                              offset, fmt);
 }
 
 size_t seis_isegy_get_text_headers_num(SeisISegy const *sgy) {
@@ -615,8 +627,7 @@ error:
 SeisSegyErrCode skip_trc_smpls_fix(SeisISegy *sgy, SeisTraceHeader *hdr) {
         UNUSED(hdr);
         SeisCommonSegy *com = sgy->com;
-        fseek(com->file, com->bytes_per_sample * com->samp_per_tr, SEEK_CUR);
-        sgy->curr_pos = ftell(com->file);
+        file_skip_bytes(sgy, com->bytes_per_sample * com->samp_per_tr);
         return com->err.code;
 }
 
@@ -629,169 +640,96 @@ SeisSegyErrCode skip_trc_smpls_var(SeisISegy *sgy, SeisTraceHeader *hdr) {
                     "variable trace length and zero samples number";
                 goto error;
         }
-        fseek(com->file, com->bytes_per_sample * *samp_num, SEEK_CUR);
-        sgy->curr_pos = ftell(com->file);
+        file_skip_bytes(sgy, com->bytes_per_sample * *samp_num);
 error:
         return com->err.code;
 }
 
+void fill_hdr_from_fmt_arr(SeisISegy *sgy, single_hdr_fmt_t *arr,
+                           SeisTraceHeader *hdr) {
+        SeisCommonSegy *com = sgy->com;
+        char const *ptr;
+        for
+                M_EACH(item, *arr, M_OPL_single_hdr_fmt_t()) {
+                        ptr = com->hdr_buf + (*item)->offset;
+                        switch ((*item)->format) {
+                        case i8:
+                                seis_trace_header_set_int(
+                                    hdr, string_get_cstr((*item)->name),
+                                    sgy->read_i8(&ptr));
+                                break;
+                        case u8:
+                                seis_trace_header_set_int(
+                                    hdr, string_get_cstr((*item)->name),
+                                    sgy->read_u8(&ptr));
+                                break;
+                        case i16:
+                                seis_trace_header_set_int(
+                                    hdr, string_get_cstr((*item)->name),
+                                    sgy->read_i16(&ptr));
+                                break;
+                        case u16:
+                                seis_trace_header_set_int(
+                                    hdr, string_get_cstr((*item)->name),
+                                    sgy->read_u16(&ptr));
+                                break;
+                        case i32:
+                                seis_trace_header_set_int(
+                                    hdr, string_get_cstr((*item)->name),
+                                    sgy->read_i32(&ptr));
+                                break;
+                        case u32:
+                                seis_trace_header_set_int(
+                                    hdr, string_get_cstr((*item)->name),
+                                    sgy->read_u32(&ptr));
+                                break;
+                        case i64:
+                                seis_trace_header_set_int(
+                                    hdr, string_get_cstr((*item)->name),
+                                    sgy->read_i64(&ptr));
+                                break;
+                        case u64:
+                                seis_trace_header_set_int(
+                                    hdr, string_get_cstr((*item)->name),
+                                    sgy->read_u64(&ptr));
+                                break;
+                        case f32:
+                                seis_trace_header_set_real(
+                                    hdr, string_get_cstr((*item)->name),
+                                    sgy->dbl_from_IEEE_float(sgy, (&ptr)));
+                                break;
+                        case f64:
+                                seis_trace_header_set_real(
+                                    hdr, string_get_cstr((*item)->name),
+                                    sgy->dbl_from_IEEE_double(sgy, (&ptr)));
+                                break;
+                        case b64:
+                                break;
+                        }
+                }
+}
+
 SeisSegyErrCode read_trc_hdr(SeisISegy *sgy, SeisTraceHeader *hdr) {
         SeisCommonSegy *com = sgy->com;
+        SeisCommonSegyPrivate *priv = (SeisCommonSegyPrivate *)com;
         TRY(fill_from_file(sgy, com->hdr_buf, TRACE_HEADER_SIZE));
-        char const *ptr = com->hdr_buf;
-        seis_trace_header_set_int(hdr, "TRC_SEQ_LINE", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "TRC_SEQ_SGY", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "FFID", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "CHAN", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "ESP", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "ENS_NO", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "SEQ_NO", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "TRACE_ID", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "VERT_SUM", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "HOR_SUM", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "DATA_USE", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "OFFSET", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "R_ELEV", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "S_ELEV", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "S_DEPTH", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "R_DATUM", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "S_DATUM", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "S_WATER", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "R_WATER", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "ELEV_SCALAR", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "COORD_SCALAR", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "SOU_X", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "SOU_Y", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "REC_X", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "REC_Y", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "COORD_UNITS", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "WEATH_VEL", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "SUBWEATH_VEL", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "S_UPHOLE", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "R_UPHOLE", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "S_STAT", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "R_STAT", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "TOT_STAT", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "LAG_A", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "LAG_B", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "DELAY_TIME", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "MUTE_START", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "MUTE_END", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "SAMP_NUM", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "SAMP_INT", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "GAIN_TYPE", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "GAIN_CONST", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "INIT_GAIN", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "CORRELATED", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "SW_START", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "SW_END", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "SW_LENGTH", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "SW_TYPE", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "SW_TAPER_START", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "SW_TAPER_END", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "TAPER_TYPE", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "ALIAS_FILT_FREQ", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "ALIAS_FILT_SLOPE", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "NOTCH_FILT_FREQ", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "NOTCH_FILT_SLOPE", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "LOW_CUT_FREQ", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "HIGH_CUT_FREQ", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "LOW_CUT_SLOPE", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "HIGH_CUT_SLOPE", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "YEAR", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "DAY", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "HOUR", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "MINUTE", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "SECOND", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "TIME_BASIS_CODE", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "TRACE_WEIGHT", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "GROUP_NUM_ROLL", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "GROUP_NUM_FIRST", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "GROUP_NUM_LAST", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "GAP_SIZE", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "OVER_TRAVEL", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "CDP_X", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "CDP_Y", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "INLINE", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "XLINE", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "SP_NUM", sgy->read_i32(&ptr));
-        seis_trace_header_set_int(hdr, "SP_NUM_SCALAR", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "TR_VAL_UNIT", sgy->read_i16(&ptr));
-        int32_t mant = sgy->read_i32(&ptr);
-        seis_trace_header_set_real(hdr, "TRANS_CONST",
-                                   mant * pow(10, sgy->read_i16(&ptr)));
-        seis_trace_header_set_int(hdr, "TRANS_UNITS", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "DEVICE_ID", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "TIME_SCALAR", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "SOURCE_TYPE", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "SOU_V_DIR", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "SOU_X_DIR", sgy->read_i16(&ptr));
-        seis_trace_header_set_int(hdr, "SOU_I_DIR", sgy->read_i16(&ptr));
-        mant = sgy->read_i32(&ptr);
-        seis_trace_header_set_real(hdr, "SOURCE_MEASUREMENT",
-                                   mant * pow(10, sgy->read_i16(&ptr)));
-        seis_trace_header_set_int(hdr, "SOU_MEAS_UNIT", sgy->read_i16(&ptr));
+        fill_hdr_from_fmt_arr(sgy, mult_hdr_fmt_get(priv->trc_hdr_map, 0), hdr);
         if (com->bin_hdr.max_num_add_tr_headers) {
                 TRY(fill_from_file(sgy, com->hdr_buf, TRACE_HEADER_SIZE));
-                char const *ptr = com->hdr_buf;
-                seis_trace_header_set_int(hdr, "TRC_SEQ_LINE",
-                                          sgy->read_u64(&ptr));
-                seis_trace_header_set_int(hdr, "TRC_SEQ_SGY",
-                                          sgy->read_u64(&ptr));
-                seis_trace_header_set_int(hdr, "FFID", sgy->read_u64(&ptr));
-                seis_trace_header_set_int(hdr, "ENS_NO", sgy->read_u64(&ptr));
-                seis_trace_header_set_real(
-                    hdr, "R_ELEV", sgy->dbl_from_IEEE_double(sgy, &ptr));
-                seis_trace_header_set_real(
-                    hdr, "R_DEPTH", sgy->dbl_from_IEEE_double(sgy, &ptr));
-                seis_trace_header_set_real(
-                    hdr, "S_DEPTH", sgy->dbl_from_IEEE_double(sgy, &ptr));
-                seis_trace_header_set_real(
-                    hdr, "R_DATUM", sgy->dbl_from_IEEE_double(sgy, &ptr));
-                seis_trace_header_set_real(
-                    hdr, "S_DATUM", sgy->dbl_from_IEEE_double(sgy, &ptr));
-                seis_trace_header_set_real(
-                    hdr, "S_WATER", sgy->dbl_from_IEEE_double(sgy, &ptr));
-                seis_trace_header_set_real(
-                    hdr, "R_WATER", sgy->dbl_from_IEEE_double(sgy, &ptr));
-                seis_trace_header_set_real(
-                    hdr, "SOU_X", sgy->dbl_from_IEEE_double(sgy, &ptr));
-                seis_trace_header_set_real(
-                    hdr, "SOU_Y", sgy->dbl_from_IEEE_double(sgy, &ptr));
-                seis_trace_header_set_real(
-                    hdr, "REC_X", sgy->dbl_from_IEEE_double(sgy, &ptr));
-                seis_trace_header_set_real(
-                    hdr, "REC_Y", sgy->dbl_from_IEEE_double(sgy, &ptr));
-                seis_trace_header_set_real(
-                    hdr, "OFFSET", sgy->dbl_from_IEEE_double(sgy, &ptr));
-                seis_trace_header_set_int(hdr, "SAMP_NUM", sgy->read_u32(&ptr));
-                seis_trace_header_set_int(hdr, "NANOSECOND",
-                                          sgy->read_i32(&ptr));
-                double samp_int = sgy->dbl_from_IEEE_double(sgy, &ptr);
-                if (samp_int)
-                        seis_trace_header_set_int(hdr, "SAMP_INT", samp_int);
-                seis_trace_header_set_int(hdr, "CABLE_NUM",
-                                          sgy->read_i32(&ptr));
-                uint16_t add_trc_hdr_num = sgy->read_u16(&ptr);
-                if (!add_trc_hdr_num)
-                        seis_trace_header_set_int(
-                            hdr, "ADD_TRC_HDR_NUM",
-                            com->bin_hdr.max_num_add_tr_headers);
+                fill_hdr_from_fmt_arr(
+                    sgy, mult_hdr_fmt_get(priv->trc_hdr_map, 1), hdr);
+                long long const *add_hdr_num =
+                    seis_trace_header_get_int(hdr, "ADD_TRC_HDR_NUM");
+                int to_read;
+                if (!*add_hdr_num)
+                        to_read = com->bin_hdr.max_num_add_tr_headers - 1;
                 else
-                        seis_trace_header_set_int(hdr, "ADD_TRC_HDR_NUM",
-                                                  add_trc_hdr_num);
-                seis_trace_header_set_int(hdr, "LAST_TRC_FLAG",
-                                          sgy->read_i16(&ptr));
-                seis_trace_header_set_int(hdr, "CDP_X",
-                                          sgy->dbl_from_IEEE_double(sgy, &ptr));
-                seis_trace_header_set_int(hdr, "CDP_Y",
-                                          sgy->dbl_from_IEEE_double(sgy, &ptr));
-                add_trc_hdr_num = add_trc_hdr_num
-                                      ? add_trc_hdr_num
-                                      : com->bin_hdr.max_num_add_tr_headers;
-                for (int32_t i = 0; i < add_trc_hdr_num - 1; ++i) {
-                        /* TODO: add custom additional headers reading */
-                        file_skip_bytes(sgy, TRACE_HEADER_SIZE);
+                        to_read = *add_hdr_num - 1;
+                for (int i = 2; i < 2 + to_read; ++i) {
+                        TRY(fill_from_file(sgy, com->hdr_buf,
+                                           TRACE_HEADER_SIZE));
+                        fill_hdr_from_fmt_arr(
+                            sgy, mult_hdr_fmt_get(priv->trc_hdr_map, i), hdr);
                 }
         }
 error:

@@ -24,9 +24,13 @@ int main(int argc, char *argv[]) {
             seis_isegy_get_binary_header(isgy);
         seis_osegy_set_text_header(osgy, text_header);
         seis_osegy_set_binary_header(osgy, binary_header);
+        /* trick to pass check. origin file rev 1 and has zeroes in the end */
+        seis_osegy_remap_trace_header(osgy, "\0\0\0\0\0\0\0\0", 1, 233, b64);
         char const *tmp_suffix = "_tmp_output_segy";
         size_t size = strlen(tmp_suffix) + strlen(argv[1]) + 1;
         tmp_name = (char *)malloc(size);
+        if (!tmp_name)
+                goto error;
         strcpy(tmp_name, argv[1]);
         strcat(tmp_name, tmp_suffix);
         seis_osegy_open(osgy, tmp_name);
@@ -39,16 +43,16 @@ int main(int argc, char *argv[]) {
                 seis_osegy_write_trace(osgy, trc);
                 if (oerr->code)
                         goto error;
-                seis_trace_unref(trc);
+                seis_trace_unref(&trc);
         }
-        seis_isegy_unref(isgy);
-        seis_osegy_unref(osgy);
+        seis_isegy_unref(&isgy);
+        seis_osegy_unref(&osgy);
         FILE *orig_file = fopen(argv[1], "rb");
         if (!orig_file)
-                return 1;
+                goto error;
         FILE *test_file = fopen(tmp_name, "rb");
         if (!test_file)
-                return 1;
+                goto error;
         int orig = 0, test = 0;
         size_t counter = 0;
         do {
@@ -58,7 +62,7 @@ int main(int argc, char *argv[]) {
                 if (orig != test) {
                         printf("Not equal: %zd\nOrig: %d, Test: %d\n", counter,
                                orig, test);
-                        return 1;
+                        goto error;
                 }
         } while (orig != EOF);
         fclose(orig_file);
@@ -67,14 +71,16 @@ int main(int argc, char *argv[]) {
         free(tmp_name);
         return 0;
 error:
-        if (trc)
-                seis_trace_unref(trc);
-        if (ierr->code)
-                printf("%s\n", ierr->message);
-        else
-                printf("%s\n", oerr->message);
-        seis_isegy_unref(isgy);
-        seis_osegy_unref(osgy);
-        free(tmp_name);
+        seis_trace_unref(&trc);
+        if (isgy && osgy) {
+                if (ierr->code)
+                        printf("%s\n", ierr->message);
+                else
+                        printf("%s\n", oerr->message);
+        }
+        seis_isegy_unref(&isgy);
+        seis_osegy_unref(&osgy);
+        if (tmp_name)
+                free(tmp_name);
         return 1;
 }

@@ -16,13 +16,12 @@ int main(int argc, char *argv[]) {
         trc = seis_isegy_read_trace(sgy);
         if (err->code)
                 goto error;
-        seis_trace_unref(trc);
-        seis_isegy_unref(sgy);
+        seis_trace_unref(&trc);
+        seis_isegy_unref(&sgy);
         return 0;
 error:
-        if (trc)
-                seis_trace_unref(trc);
+        seis_trace_unref(&trc);
         printf("%s\n", err->message);
-        seis_isegy_unref(sgy);
+        seis_isegy_unref(&sgy);
         return 1;
 }

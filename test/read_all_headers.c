@@ -24,14 +24,13 @@ int main(int argc, char *argv[]) {
                         goto error;
                 if (*num != ++counter)
                         goto error;
-                seis_trace_header_unref(hdr);
+                seis_trace_header_unref(&hdr);
         }
-        seis_isegy_unref(sgy);
+        seis_isegy_unref(&sgy);
         return 0;
 error:
-        if (hdr)
-                seis_trace_header_unref(hdr);
+        seis_trace_header_unref(&hdr);
         printf("%s\n", err->message);
-        seis_isegy_unref(sgy);
+        seis_isegy_unref(&sgy);
         return 1;
 }
