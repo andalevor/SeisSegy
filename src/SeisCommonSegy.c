@@ -78,6 +78,10 @@ SeisSegyErrCode seis_common_remap_trace_header(SeisCommonSegy *sgy,
         case b64:
                 hdr_size = 8;
                 break;
+        default:
+                sgy->err.code = SEIS_SEGY_ERR_BAD_PARAMS;
+                sgy->err.message = "unknown format";
+                goto error;
         }
         if (offset + hdr_size - 1 > TRACE_HEADER_SIZE) {
                 sgy->err.code = SEIS_SEGY_ERR_BAD_PARAMS;
