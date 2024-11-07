@@ -1,6 +1,7 @@
 #include "SeisISegy.h"
 #include "SeisCommonSegy.h"
 #include "SeisCommonSegyPrivate.h"
+#include "SeisISU.h"
 #include "TRY.h"
 #include <SeisTrace.h>
 #include <assert.h>
@@ -33,6 +34,11 @@ struct SeisISegy {
         SeisSegyErrCode (*read_trc_smpls)(SeisISegy *sgy, SeisTraceHeader *hdr,
                                           SeisTrace **trc);
         SeisSegyErrCode (*skip_trc_smpls)(SeisISegy *sgy, SeisTraceHeader *hdr);
+        int rc;
+};
+
+struct SeisISU {
+        SeisISegy *sgy;
         int rc;
 };
 
@@ -80,6 +86,7 @@ static double dbl_from_IEEE_float(SeisISegy *sgy, char const **buf);
 static double dbl_from_IEEE_double(SeisISegy *sgy, char const **buf);
 static double dbl_from_IEEE_float_native(SeisISegy *sgy, char const **buf);
 static double dbl_from_IEEE_double_native(SeisISegy *sgy, char const **buf);
+static double dbl_from_IEEE_float_native_su(SeisISegy *sgy, char const **buf);
 static double dbl_from_i8(SeisISegy *sgy, char const **buf);
 static double dbl_from_u8(SeisISegy *sgy, char const **buf);
 static double dbl_from_i16(SeisISegy *sgy, char const **buf);
@@ -165,24 +172,33 @@ error:
 
 SeisTrace *seis_isegy_read_trace(SeisISegy *sgy) {
         SeisTraceHeader *hdr = seis_trace_header_new();
-        if (!hdr)
+        if (!hdr) {
+                sgy->com->err.code = SEIS_SEGY_ERR_NO_MEM;
+                sgy->com->err.message = "can't get memory at trace reading";
                 goto error;
+        }
         TRY(read_trc_hdr(sgy, hdr));
         SeisTrace *trc;
         TRY(sgy->read_trc_smpls(sgy, hdr, &trc));
         return trc;
 error:
+        seis_trace_header_unref(&hdr);
         return NULL;
 }
 
 SeisTraceHeader *seis_isegy_read_trace_header(SeisISegy *sgy) {
         SeisTraceHeader *hdr = seis_trace_header_new();
-        if (!hdr)
+        if (!hdr) {
+                sgy->com->err.code = SEIS_SEGY_ERR_NO_MEM;
+                sgy->com->err.message =
+                    "can't get memory at trace header reading";
                 goto error;
+        }
         TRY(read_trc_hdr(sgy, hdr));
         sgy->skip_trc_smpls(sgy, hdr);
         return hdr;
 error:
+        seis_trace_header_unref(&hdr);
         return NULL;
 }
 
@@ -208,6 +224,126 @@ char const *seis_isegy_get_text_header(SeisISegy const *sgy, size_t idx) {
 void seis_isegy_rewind(SeisISegy *sgy) {
         fseek(sgy->com->file, sgy->first_trace_pos, SEEK_SET);
         sgy->curr_pos = sgy->first_trace_pos;
+}
+
+SeisISU *seis_isu_new(void) {
+        SeisISU *su = (SeisISU *)malloc(sizeof(struct SeisISU));
+        if (!su)
+                goto error;
+        su->sgy = seis_isegy_new();
+        su->rc = 1;
+        return su;
+error:
+        return NULL;
+}
+
+SeisISU *seis_isu_ref(SeisISU *su) {
+        ++su->rc;
+        return su;
+}
+
+void seis_isu_unref(SeisISU **su) {
+        if (*su)
+                if (--(*su)->rc == 0) {
+                        seis_isegy_unref(&(*su)->sgy);
+                        free(*su);
+                        *su = NULL;
+                }
+}
+
+SeisSegyErrCode seis_isu_open(SeisISU *su, char const *file_name) {
+        SeisISegy *sgy = su->sgy;
+        SeisCommonSegy *com = sgy->com;
+        assert(!com->file); /* open func must be called only once */
+        com->file = fopen(file_name, "r");
+        if (!com->file) {
+                com->err.code = SEIS_SEGY_ERR_FILE_OPEN;
+                com->err.message = "file open error";
+                goto error;
+        }
+        TRY(assign_raw_readers(sgy));
+        com->bin_hdr.format_code = 5;
+        sgy->read_sample = dbl_from_IEEE_float_native_su;
+        com->bytes_per_sample = 4;
+        sgy->first_trace_pos = ftell(com->file);
+        seis_isegy_remap_trace_header(sgy, "SAMP_NUM", 1, 115, u16);
+        seis_isegy_remap_trace_header(sgy, "SAMP_INT", 1, 117, u16);
+        SeisTraceHeader *hdr = seis_trace_header_new();
+        if (!hdr) {
+                com->err.code = SEIS_SEGY_ERR_NO_MEM;
+                com->err.message = "can't get memory at trace reading";
+                goto error;
+        }
+        TRY(read_trc_hdr(sgy, hdr));
+        long long const *samp_num = seis_trace_header_get_int(hdr, "SAMP_NUM");
+        com->samp_per_tr = *samp_num;
+        if (!samp_num) {
+                com->err.code = SEIS_SEGY_ERR_BROKEN_FILE;
+                com->err.message =
+                    "variable trace length and zero samples number";
+                goto error;
+        }
+        fseek(com->file, 0, SEEK_END);
+        sgy->end_of_data = ftell(com->file);
+        fseek(com->file, sgy->first_trace_pos, SEEK_SET);
+        sgy->curr_pos = sgy->first_trace_pos;
+        com->samp_buf =
+            (char *)malloc(com->samp_per_tr * com->bytes_per_sample);
+        sgy->read_trc_smpls = read_trc_smpls_fix;
+        sgy->skip_trc_smpls = skip_trc_smpls_fix;
+        seis_trace_header_unref(&hdr);
+error:
+        seis_trace_header_unref(&hdr);
+        return com->err.code;
+}
+
+bool seis_isu_end_of_data(SeisISU const *su) {
+        return su->sgy->end_of_data == su->sgy->curr_pos;
+}
+
+SeisSegyErr const *seis_isu_get_error(SeisISU const *su) {
+        return &su->sgy->com->err;
+}
+
+void seis_isu_rewind(SeisISU *su) {
+        fseek(su->sgy->com->file, su->sgy->first_trace_pos, SEEK_SET);
+        su->sgy->curr_pos = su->sgy->first_trace_pos;
+}
+
+SeisTrace *seis_isu_read_trace(SeisISU *su) {
+        SeisTraceHeader *hdr = seis_trace_header_new();
+        if (!hdr) {
+                su->sgy->com->err.code = SEIS_SEGY_ERR_NO_MEM;
+                su->sgy->com->err.message = "can't get memory at trace reading";
+                goto error;
+        }
+        TRY(read_trc_hdr(su->sgy, hdr));
+        SeisTrace *trc;
+        TRY(su->sgy->read_trc_smpls(su->sgy, hdr, &trc));
+        return trc;
+error:
+        seis_trace_header_unref(&hdr);
+        return NULL;
+}
+
+SeisTraceHeader *seis_isu_read_trace_header(SeisISU *su) {
+        SeisTraceHeader *hdr = seis_trace_header_new();
+        if (!hdr) {
+                su->sgy->com->err.code = SEIS_SEGY_ERR_NO_MEM;
+                su->sgy->com->err.message = "can't get memory at trace reading";
+                goto error;
+        }
+        TRY(read_trc_hdr(su->sgy, hdr));
+        su->sgy->skip_trc_smpls(su->sgy, hdr);
+        return hdr;
+error:
+        seis_trace_header_unref(&hdr);
+        return NULL;
+}
+
+SeisSegyErrCode seis_isu_remap_trace_header(SeisISU *su, char const *hdr_name,
+                                            int offset, enum FORMAT fmt) {
+        return seis_isegy_remap_trace_header(su->sgy, hdr_name, 1, offset, fmt);
 }
 
 SeisSegyErrCode fill_from_file(SeisISegy *sgy, char *buf, size_t num) {
@@ -584,6 +720,10 @@ SeisSegyErrCode read_trc_smpls_fix(SeisISegy *sgy, SeisTraceHeader *hdr,
                            com->samp_per_tr * com->bytes_per_sample));
         char const *ptr = com->samp_buf;
         *trc = seis_trace_new_with_header(com->samp_per_tr, hdr);
+        if (!trc) {
+                com->err.code = SEIS_SEGY_ERR_NO_MEM;
+                com->err.message = "can't get memory at trace sample reading";
+        }
         double *samples = seis_trace_get_samples(*trc);
         for (double *end = samples + com->samp_per_tr; samples != end;
              ++samples)
@@ -617,6 +757,10 @@ SeisSegyErrCode read_trc_smpls_var(SeisISegy *sgy, SeisTraceHeader *hdr,
                            *samp_num * com->bytes_per_sample));
         char const *ptr = com->samp_buf;
         *trc = seis_trace_new_with_header(*samp_num, hdr);
+        if (!trc) {
+                com->err.code = SEIS_SEGY_ERR_NO_MEM;
+                com->err.message = "can't get memory at trace sample reading";
+        }
         double *samples = seis_trace_get_samples(*trc);
         for (double *end = samples + *samp_num; samples != end; ++samples)
                 *samples = sgy->read_sample(sgy, &ptr);
@@ -908,6 +1052,14 @@ double dbl_from_IEEE_double_native(SeisISegy *sgy, char const **buf) {
         double result;
         memcpy(&result, &tmp, sizeof(result));
         return result;
+}
+
+double dbl_from_IEEE_float_native_su(SeisISegy *sgy, char const **buf) {
+        UNUSED(sgy);
+        uint32_t tmp = read_u32(buf);
+        float result;
+        memcpy(&result, &tmp, sizeof(result));
+        return (double)result;
 }
 
 double dbl_from_i8(SeisISegy *sgy, char const **buf) {

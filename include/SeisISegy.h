@@ -5,8 +5,8 @@
  * \date 2022\11\20
  */
 
-#ifndef SEIS_SEGY_H
-#define SEIS_SEGY_H
+#ifndef SEIS_ISEGY_H
+#define SEIS_ISEGY_H
 
 #include "SeisCommonSegy.h"
 #include <SeisTrace.h>
@@ -43,7 +43,7 @@ void seis_isegy_unref(SeisISegy **sgy);
 
 /**
  * \fn seis_isegy_get_error
- * \brief Gets SeisISegyErr structure for error checking.
+ * \brief Gets SeisSegyErr structure for error checking.
  * \return nonNULL. You should not free this memory.
  */
 SeisSegyErr const *seis_isegy_get_error(SeisISegy const *sgy);
@@ -128,4 +128,4 @@ SeisSegyErrCode seis_isegy_remap_trace_header(SeisISegy *sgy,
                                               char const *hdr_name, int hdr_num,
                                               int offset, enum FORMAT fmt);
 
-#endif /* SEIS_SEGY_H */
+#endif /* SEIS_ISEGY_H */

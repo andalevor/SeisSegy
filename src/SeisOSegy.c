@@ -2,6 +2,7 @@
 #include "SeisCommonSegy.h"
 #include "SeisCommonSegyPrivate.h"
 #include "SeisEncodings.h"
+#include "SeisOSU.h"
 #include "TRY.h"
 #include "m-string.h"
 #include <SeisTrace.h>
@@ -58,6 +59,11 @@ struct SeisOSegy {
         int rc;
 };
 
+struct SeisOSU {
+        SeisOSegy *sgy;
+        int rc;
+};
+
 static void write_i8(char **buf, int8_t val);
 static void write_u8(char **buf, uint8_t val);
 static void write_i16(char **buf, int16_t val);
@@ -81,6 +87,7 @@ static void write_IEEE_float(SeisOSegy *sgy, char **buf, double val);
 static void write_IEEE_double(SeisOSegy *sgy, char **buf, double val);
 static void write_IEEE_float_native(SeisOSegy *sgy, char **buf, double val);
 static void write_IEEE_double_native(SeisOSegy *sgy, char **buf, double val);
+static void write_IEEE_float_native_su(SeisOSegy *sgy, char **buf, double val);
 static void dbl_to_i8(SeisOSegy *sgy, char **buf, double val);
 static void dbl_to_u8(SeisOSegy *sgy, char **buf, double val);
 static void dbl_to_i16(SeisOSegy *sgy, char **buf, double val);
@@ -131,16 +138,6 @@ void seis_osegy_unref(SeisOSegy **sgy) {
                         free(*sgy);
                         *sgy = NULL;
                 }
-}
-
-SeisSegyErrCode write_to_file(SeisOSegy *sgy, char const *buf, size_t num) {
-        SeisCommonSegy *com = sgy->com;
-        size_t written = fwrite(buf, 1, num, com->file);
-        if (written != num) {
-                com->err.code = SEIS_SEGY_ERR_FILE_WRITE;
-                com->err.message = "written less bytes than should";
-        }
-        return com->err.code;
 }
 
 SeisSegyErr const *seis_osegy_get_error(SeisOSegy const *sgy) {
@@ -233,6 +230,78 @@ SeisSegyErrCode seis_osegy_write_trace(SeisOSegy *sgy, SeisTrace const *trc) {
         return sgy->write_trace_samples(sgy, trc);
 error:
         return err->code;
+}
+
+SeisOSU *seis_osu_new(void) {
+        SeisOSU *su = (SeisOSU *)malloc(sizeof(struct SeisOSU));
+        if (!su)
+                goto error;
+        su->sgy = seis_osegy_new();
+        su->rc = 1;
+        return su;
+error:
+        return NULL;
+}
+
+SeisOSU *seis_osu_ref(SeisOSU *su) {
+        ++su->rc;
+        return su;
+}
+
+void seis_osu_unref(SeisOSU **su) {
+        if (*su)
+                if (!--(*su)->rc) {
+                        seis_osegy_unref(&(*su)->sgy);
+                        free(*su);
+                        *su = NULL;
+                }
+}
+
+SeisSegyErr const *seis_osu_get_error(SeisOSU const *su) {
+        return &su->sgy->com->err;
+}
+
+SeisSegyErrCode seis_osu_remap_trace_header(SeisOSU *su, char const *hdr_name,
+                                            int offset, enum FORMAT fmt) {
+        return seis_osegy_remap_trace_header(su->sgy, hdr_name, 1, offset, fmt);
+}
+
+SeisSegyErrCode seis_osu_open(SeisOSU *su, char const *file_name) {
+        SeisOSegy *sgy = su->sgy;
+        SeisCommonSegy *com = sgy->com;
+        com->file = fopen(file_name, "wb");
+        if (!com->file) {
+                com->err.code = SEIS_SEGY_ERR_FILE_OPEN;
+                com->err.message = "can't open file for writing";
+                goto error;
+        }
+        TRY(assign_raw_writers(sgy));
+        com->bytes_per_sample = 4;
+        com->bin_hdr.format_code = 1;
+        sgy->write_sample = write_IEEE_float_native_su;
+        com->samp_per_tr = 0;
+        com->samp_buf = NULL;
+        sgy->write_trace_samples = write_trace_samples_var;
+error:
+        return com->err.code;
+}
+
+SeisSegyErrCode seis_osu_write_trace(SeisOSU *su, SeisTrace const *trc) {
+        SeisSegyErr const *err = seis_osu_get_error(su);
+        TRY(write_trace_header(su->sgy, seis_trace_get_header_const(trc)));
+        return su->sgy->write_trace_samples(su->sgy, trc);
+error:
+        return err->code;
+}
+
+SeisSegyErrCode write_to_file(SeisOSegy *sgy, char const *buf, size_t num) {
+        SeisCommonSegy *com = sgy->com;
+        size_t written = fwrite(buf, 1, num, com->file);
+        if (written != num) {
+                com->err.code = SEIS_SEGY_ERR_FILE_WRITE;
+                com->err.message = "written less bytes than should";
+        }
+        return com->err.code;
 }
 
 SeisSegyErrCode assign_raw_writers(SeisOSegy *sgy) {
@@ -766,6 +835,14 @@ void write_IEEE_double_native(SeisOSegy *sgy, char **buf, double val) {
         uint64_t tmp;
         memcpy(&tmp, &val, sizeof(double));
         sgy->write_u64(buf, tmp);
+}
+
+void write_IEEE_float_native_su(SeisOSegy *sgy, char **buf, double val) {
+        UNUSED(sgy);
+        float flt = val;
+        uint32_t tmp;
+        memcpy(&tmp, &flt, sizeof(float));
+        write_u32(buf, tmp);
 }
 
 void dbl_to_i8(SeisOSegy *sgy, char **buf, double val) {

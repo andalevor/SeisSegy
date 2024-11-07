@@ -62,3 +62,10 @@ test('Test SEGY reading and writing 2I', read_write,
   args : '../samples/2I.sgy')
 test('Test SEGY reading and writing 4I', read_write,
   args : '../samples/4I.sgy')
+
+read_write_su = executable('read_write_su', 'read_write_su.c',
+  include_directories : inc,
+  link_with : SeisSegy,
+  dependencies : seistrace_dep)
+test('Test SU reading and writing', read_write_su,
+  args : '../samples/suplane.su')

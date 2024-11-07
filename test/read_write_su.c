@@ -1,5 +1,5 @@
-#include "SeisISegy.h"
-#include "SeisOSegy.h"
+#include "SeisISU.h"
+#include "SeisOSU.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -7,44 +7,39 @@ int main(int argc, char *argv[]) {
         char *tmp_name = NULL;
         if (argc < 2)
                 return 1;
-        SeisISegy *isgy = seis_isegy_new();
+        SeisISU *isgy = seis_isu_new();
         if (!isgy)
                 return 1;
-        SeisSegyErr const *ierr = seis_isegy_get_error(isgy);
-        SeisOSegy *osgy = seis_osegy_new();
+        SeisSegyErr const *ierr = seis_isu_get_error(isgy);
+        SeisOSU *osgy = seis_osu_new();
         if (!osgy)
                 return 1;
-        SeisSegyErr const *oerr = seis_osegy_get_error(osgy);
+        SeisSegyErr const *oerr = seis_osu_get_error(osgy);
         SeisTrace *trc = NULL;
-        seis_isegy_open(isgy, argv[1]);
+        seis_isu_open(isgy, argv[1]);
         if (ierr->code)
                 goto error;
-        char const *text_header = seis_isegy_get_text_header(isgy, 0);
-        SeisSegyBinHdr const *binary_header =
-            seis_isegy_get_binary_header(isgy);
-        seis_osegy_set_text_header(osgy, text_header);
-        seis_osegy_set_binary_header(osgy, binary_header);
-        char const *tmp_suffix = "_tmp_output_segy";
+        char const *tmp_suffix = "_tmp_output_su";
         size_t size = strlen(tmp_suffix) + strlen(argv[1]) + 1;
         tmp_name = (char *)malloc(size);
         if (!tmp_name)
                 goto error;
         strcpy(tmp_name, argv[1]);
         strcat(tmp_name, tmp_suffix);
-        seis_osegy_open(osgy, tmp_name);
+        seis_osu_open(osgy, tmp_name);
         if (oerr->code)
                 goto error;
-        while (!seis_isegy_end_of_data(isgy)) {
-                trc = seis_isegy_read_trace(isgy);
+        while (!seis_isu_end_of_data(isgy)) {
+                trc = seis_isu_read_trace(isgy);
                 if (ierr->code)
                         goto error;
-                seis_osegy_write_trace(osgy, trc);
+                seis_osu_write_trace(osgy, trc);
                 if (oerr->code)
                         goto error;
                 seis_trace_unref(&trc);
         }
-        seis_isegy_unref(&isgy);
-        seis_osegy_unref(&osgy);
+        seis_isu_unref(&isgy);
+        seis_osu_unref(&osgy);
         FILE *orig_file = fopen(argv[1], "rb");
         if (!orig_file)
                 goto error;
@@ -76,8 +71,8 @@ error:
                 else
                         printf("%s\n", oerr->message);
         }
-        seis_isegy_unref(&isgy);
-        seis_osegy_unref(&osgy);
+        seis_isu_unref(&isgy);
+        seis_osu_unref(&osgy);
         if (tmp_name)
                 free(tmp_name);
         return 1;

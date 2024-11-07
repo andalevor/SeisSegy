@@ -98,7 +98,7 @@ void seis_osegy_add_traler_stanza(SeisOSegy *sgy, char *buf);
 SeisSegyErrCode seis_osegy_write_trace(SeisOSegy *sgy, SeisTrace const *trc);
 
 /**
- * \fn seis_0segy_remap_trace_header
+ * \fn seis_osegy_remap_trace_header
  * \brief changes header reading parameters
  * offset + size of format should not exceed 240
  * \param sgy SeisOSegy instance
