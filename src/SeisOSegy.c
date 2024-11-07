@@ -545,6 +545,7 @@ SeisSegyErrCode write_trailer_stanzas(SeisOSegy *sgy) {
 void fill_buf_with_fmt_arr(SeisOSegy *sgy, single_hdr_fmt_t *arr,
                            SeisTraceHeader const *hdr) {
         char *ptr;
+        char const *tmp;
         long long const *i;
         double const *d;
         SeisCommonSegy *com = sgy->com;
@@ -604,7 +605,10 @@ void fill_buf_with_fmt_arr(SeisOSegy *sgy, single_hdr_fmt_t *arr,
                                 sgy->write_IEEE_double(sgy, &ptr, d ? *d : 0);
                                 break;
                         case b64:
-                                strncpy(ptr, string_get_cstr((*item)->name), 8);
+								tmp = string_get_cstr((*item)->name);
+								size_t size = strlen(tmp);
+								size = size > 8 ? 8 : size;
+                                memcpy(ptr, tmp, size);
                                 break;
                         }
                 }
