@@ -81,12 +81,12 @@ SeisSegyErrCode seis_osegy_open(SeisOSegy *sgy, char const *file_name);
 void seis_osegy_add_ext_text_header(SeisOSegy *sgy, char *hdr);
 
 /**
- * \fn seis_osegy_add_traler_stanza
+ * \fn seis_osegy_add_trailer_stanza
  * \brief adds SEGY trailer stanza
  * \param sgy pointer to SeisOSegy instance
  * \param hdr text header. must have 3200 chars
  */
-void seis_osegy_add_traler_stanza(SeisOSegy *sgy, char *buf);
+void seis_osegy_add_trailer_stanza(SeisOSegy *sgy, char *buf);
 
 /**
  * \fn seis_osegy_write_trace

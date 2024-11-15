@@ -196,7 +196,7 @@ SeisSegyErrCode seis_osegy_remap_trace_header(SeisOSegy *sgy,
                                               offset, fmt);
 }
 
-void seis_osegy_add_traler_stanza(SeisOSegy *sgy, char *buf) {
+void seis_osegy_add_trailer_stanza(SeisOSegy *sgy, char *buf) {
         SeisCommonSegy *com = sgy->com;
         assert(strlen(buf) == TEXT_HEADER_SIZE);
         seis_common_segy_add_stanza(com, buf);
@@ -605,9 +605,9 @@ void fill_buf_with_fmt_arr(SeisOSegy *sgy, single_hdr_fmt_t *arr,
                                 sgy->write_IEEE_double(sgy, &ptr, d ? *d : 0);
                                 break;
                         case b64:
-								tmp = string_get_cstr((*item)->name);
-								size_t size = strlen(tmp);
-								size = size > 8 ? 8 : size;
+                                tmp = string_get_cstr((*item)->name);
+                                size_t size = strlen(tmp);
+                                size = size > 8 ? 8 : size;
                                 memcpy(ptr, tmp, size);
                                 break;
                         }
