@@ -533,7 +533,7 @@ void fill_hdr_map(SeisCommonSegyPrivate *psgy) {
                 fmt->offset = 16;
                 fmt->format = i64;
                 single_hdr_fmt_push_back(hdr, fmt);
-                string_set_str(fmt->name, "ESN_NO");
+                string_set_str(fmt->name, "ENS_NO");
                 fmt->offset = 24;
                 fmt->format = i64;
                 single_hdr_fmt_push_back(hdr, fmt);
