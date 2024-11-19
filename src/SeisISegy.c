@@ -86,7 +86,6 @@ static double dbl_from_IEEE_float(SeisISegy *sgy, char const **buf);
 static double dbl_from_IEEE_double(SeisISegy *sgy, char const **buf);
 static double dbl_from_IEEE_float_native(SeisISegy *sgy, char const **buf);
 static double dbl_from_IEEE_double_native(SeisISegy *sgy, char const **buf);
-static double dbl_from_IEEE_float_native_su(SeisISegy *sgy, char const **buf);
 static double dbl_from_i8(SeisISegy *sgy, char const **buf);
 static double dbl_from_u8(SeisISegy *sgy, char const **buf);
 static double dbl_from_i16(SeisISegy *sgy, char const **buf);
@@ -226,6 +225,12 @@ void seis_isegy_rewind(SeisISegy *sgy) {
         sgy->curr_pos = sgy->first_trace_pos;
 }
 
+size_t seis_isegy_get_offset(SeisISegy *sgy) { return ftell(sgy->com->file); }
+
+void seis_isegy_set_offset(SeisISegy *sgy, size_t offset) {
+        fseek(sgy->com->file, offset, SEEK_SET);
+}
+
 SeisISU *seis_isu_new(void) {
         SeisISU *su = (SeisISU *)malloc(sizeof(struct SeisISU));
         if (!su)
@@ -261,9 +266,10 @@ SeisSegyErrCode seis_isu_open(SeisISU *su, char const *file_name) {
                 com->err.message = "file open error";
                 goto error;
         }
+        com->bin_hdr.endianness = 0x01020304;
         TRY(assign_raw_readers(sgy));
         com->bin_hdr.format_code = 5;
-        sgy->read_sample = dbl_from_IEEE_float_native_su;
+        sgy->read_sample = dbl_from_IEEE_float_native;
         com->bytes_per_sample = 4;
         sgy->first_trace_pos = ftell(com->file);
         seis_isegy_remap_trace_header(sgy, "SAMP_NUM", 1, 115, u16);
@@ -1052,14 +1058,6 @@ double dbl_from_IEEE_double_native(SeisISegy *sgy, char const **buf) {
         double result;
         memcpy(&result, &tmp, sizeof(result));
         return result;
-}
-
-double dbl_from_IEEE_float_native_su(SeisISegy *sgy, char const **buf) {
-        UNUSED(sgy);
-        uint32_t tmp = read_u32(buf);
-        float result;
-        memcpy(&result, &tmp, sizeof(result));
-        return (double)result;
 }
 
 double dbl_from_i8(SeisISegy *sgy, char const **buf) {

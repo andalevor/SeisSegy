@@ -87,7 +87,6 @@ static void write_IEEE_float(SeisOSegy *sgy, char **buf, double val);
 static void write_IEEE_double(SeisOSegy *sgy, char **buf, double val);
 static void write_IEEE_float_native(SeisOSegy *sgy, char **buf, double val);
 static void write_IEEE_double_native(SeisOSegy *sgy, char **buf, double val);
-static void write_IEEE_float_native_su(SeisOSegy *sgy, char **buf, double val);
 static void dbl_to_i8(SeisOSegy *sgy, char **buf, double val);
 static void dbl_to_u8(SeisOSegy *sgy, char **buf, double val);
 static void dbl_to_i16(SeisOSegy *sgy, char **buf, double val);
@@ -275,10 +274,11 @@ SeisSegyErrCode seis_osu_open(SeisOSU *su, char const *file_name) {
                 com->err.message = "can't open file for writing";
                 goto error;
         }
+        com->bin_hdr.endianness = 0x01020304;
         TRY(assign_raw_writers(sgy));
         com->bytes_per_sample = 4;
         com->bin_hdr.format_code = 1;
-        sgy->write_sample = write_IEEE_float_native_su;
+        sgy->write_sample = write_IEEE_float_native;
         com->samp_per_tr = 0;
         com->samp_buf = NULL;
         sgy->write_trace_samples = write_trace_samples_var;
@@ -839,14 +839,6 @@ void write_IEEE_double_native(SeisOSegy *sgy, char **buf, double val) {
         uint64_t tmp;
         memcpy(&tmp, &val, sizeof(double));
         sgy->write_u64(buf, tmp);
-}
-
-void write_IEEE_float_native_su(SeisOSegy *sgy, char **buf, double val) {
-        UNUSED(sgy);
-        float flt = val;
-        uint32_t tmp;
-        memcpy(&tmp, &flt, sizeof(float));
-        write_u32(buf, tmp);
 }
 
 void dbl_to_i8(SeisOSegy *sgy, char **buf, double val) {

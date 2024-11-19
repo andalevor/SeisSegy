@@ -1,5 +1,6 @@
 #include "SeisISU.h"
 #include "SeisOSU.h"
+#include <SeisTrace.h>
 #include <stdlib.h>
 #include <string.h>
 

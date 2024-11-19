@@ -128,4 +128,21 @@ SeisSegyErrCode seis_isegy_remap_trace_header(SeisISegy *sgy,
                                               char const *hdr_name, int hdr_num,
                                               int offset, enum FORMAT fmt);
 
+/**
+ * \fn seis_isegy_get_offset
+ * \brief gets current file offset to come back later and read the same trace
+ * again
+ * \param sgy SeisISegy instance
+ * \return file offset
+ */
+size_t seis_isegy_get_offset(SeisISegy *sgy);
+
+/**
+ * \fn seis_isegy_set_offset
+ * \brief sets file offset to read trace
+ * \param sgy SeisISegy instance
+ * \param offset file offset
+ */
+void seis_isegy_set_offset(SeisISegy *sgy, size_t offset);
+
 #endif /* SEIS_ISEGY_H */
