@@ -654,7 +654,12 @@ SeisSegyErrCode write_trace_samples_var(SeisOSegy *sgy, SeisTrace const *t) {
         SeisCommonSegy *com = sgy->com;
         SeisTraceHeader const *hdr = seis_trace_get_header_const(t);
         long long const *samp_num = seis_trace_header_get_int(hdr, "SAMP_NUM");
-        assert(samp_num);
+        if (!samp_num || !*samp_num) {
+                com->err.code = SEIS_SEGY_ERR_BROKEN_FILE;
+                com->err.message =
+                    "variable trace length and no samples number specified";
+                goto error;
+        }
         long long bytes_num = *samp_num * com->bytes_per_sample;
         if (*samp_num != com->samp_per_tr) {
                 com->samp_buf = realloc(com->samp_buf, bytes_num);

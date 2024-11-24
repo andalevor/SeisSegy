@@ -742,13 +742,13 @@ SeisSegyErrCode read_trc_smpls_var(SeisISegy *sgy, SeisTraceHeader *hdr,
                                    SeisTrace **trc) {
         SeisCommonSegy *com = sgy->com;
         long long const *samp_num = seis_trace_header_get_int(hdr, "SAMP_NUM");
-        if (!samp_num) {
+        if (!samp_num || !*samp_num) {
                 com->err.code = SEIS_SEGY_ERR_BROKEN_FILE;
                 com->err.message =
-                    "variable trace length and zero samples number";
+                    "variable trace length and no samples number specified";
                 goto error;
         }
-        if (com->samp_per_tr < *samp_num) {
+        if (com->samp_per_tr != *samp_num) {
                 com->samp_per_tr = *samp_num;
                 void *res =
                     realloc(com->samp_buf, *samp_num * com->bytes_per_sample);
