@@ -22,6 +22,7 @@ SeisCommonSegy *seis_common_segy_new(void) {
                 return NULL;
         priv->com.samp_buf = NULL;
         priv->com.file = NULL;
+        priv->com.samp_per_tr = 0;
         str_arr_init(priv->text_hdrs);
         str_arr_init(priv->end_stanzas);
         mult_hdr_fmt_init(priv->trc_hdr_map);
@@ -35,8 +36,9 @@ void seis_common_segy_unref(SeisCommonSegy **sgy) {
                 free(psgy->com.hdr_buf);
                 if (psgy->com.samp_buf)
                         free(psgy->com.samp_buf);
-                if (psgy->com.file)
+                if (psgy->com.file) {
                         fclose(psgy->com.file);
+                }
                 str_arr_clear(psgy->text_hdrs);
                 str_arr_clear(psgy->end_stanzas);
                 mult_hdr_fmt_clear(psgy->trc_hdr_map);

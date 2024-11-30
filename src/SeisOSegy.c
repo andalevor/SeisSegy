@@ -56,6 +56,7 @@ struct SeisOSegy {
         SeisSegyErrCode (*write_trace_samples)(SeisOSegy *sgy,
                                                SeisTrace const *t);
         SeisSegyErrCode (*write_trace)(SeisOSegy *sgy, SeisTrace const *trc);
+        int update_bin_header;
         int rc;
 };
 
@@ -123,8 +124,7 @@ void seis_osegy_unref(SeisOSegy **sgy) {
                                         write_trailer_stanzas(*sgy);
                                 /* update samp_per_tr value for variable
                                  * trace length SEGYs */
-                                if (!com->bin_hdr.fixed_tr_length &&
-                                    com->bin_hdr.SEGY_rev_major_ver) {
+                                if ((*sgy)->update_bin_header) {
                                         com->bin_hdr.samp_per_tr =
                                             com->bin_hdr.ext_samp_per_tr =
                                                 com->samp_per_tr;
@@ -171,17 +171,23 @@ SeisSegyErrCode seis_osegy_open(SeisOSegy *sgy, char const *file_name) {
         com->samp_per_tr = com->bin_hdr.ext_samp_per_tr
                                ? com->bin_hdr.ext_samp_per_tr
                                : com->bin_hdr.samp_per_tr;
-        com->samp_buf =
-            (char *)malloc(com->samp_per_tr * com->bytes_per_sample);
-        if (!com->samp_buf) {
+        if (com->samp_per_tr)
+                com->samp_buf =
+                    (char *)malloc(com->samp_per_tr * com->bytes_per_sample);
+        if (com->samp_per_tr && !com->samp_buf) {
                 com->err.code = SEIS_SEGY_ERR_NO_MEM;
                 com->err.message = "can't allocate memory in osegy open";
                 goto error;
         }
-        if (com->bin_hdr.fixed_tr_length || !com->bin_hdr.SEGY_rev_major_ver)
+        if ((com->bin_hdr.fixed_tr_length ||
+             !com->bin_hdr.SEGY_rev_major_ver) &&
+            com->samp_per_tr) {
                 sgy->write_trace_samples = write_trace_samples_fix;
-        else
+                sgy->update_bin_header = 0;
+        } else {
                 sgy->write_trace_samples = write_trace_samples_var;
+                sgy->update_bin_header = 1;
+        }
         if (com->bin_hdr.SEGY_rev_major_ver)
                 TRY(write_ext_text_headers(sgy));
 error:
@@ -237,6 +243,7 @@ SeisOSU *seis_osu_new(void) {
                 goto error;
         su->sgy = seis_osegy_new();
         su->rc = 1;
+        su->sgy->update_bin_header = 0;
         return su;
 error:
         return NULL;
@@ -282,6 +289,7 @@ SeisSegyErrCode seis_osu_open(SeisOSU *su, char const *file_name) {
         com->samp_per_tr = 0;
         com->samp_buf = NULL;
         sgy->write_trace_samples = write_trace_samples_var;
+        sgy->update_bin_header = 0;
 error:
         return com->err.code;
 }
@@ -432,10 +440,11 @@ SeisSegyErrCode write_text_header(SeisOSegy *sgy) {
         char const *hdr;
         char *buf = NULL;
         if (!hdr_num) {
-                buf = (char *)malloc(TEXT_HEADER_SIZE);
+                buf = (char *)malloc(TEXT_HEADER_SIZE + 1);
                 if (!buf) {
                         com->err.code = SEIS_SEGY_ERR_NO_MEM;
                         com->err.message = "no memory for text header";
+                        goto error;
                 }
                 char const *def_hdr;
                 switch (com->bin_hdr.SEGY_rev_major_ver) {
@@ -451,12 +460,17 @@ SeisSegyErrCode write_text_header(SeisOSegy *sgy) {
                         break;
                 }
                 memcpy(buf, def_hdr, TEXT_HEADER_SIZE);
+                buf[TEXT_HEADER_SIZE] = 0;
                 ascii_to_ebcdic(buf);
                 hdr = buf;
         } else {
                 hdr = seis_common_segy_get_text_header(com, 0);
         }
         write_to_file(sgy, hdr, TEXT_HEADER_SIZE);
+        if (buf)
+                free(buf);
+        return com->err.code;
+error:
         if (buf)
                 free(buf);
         return com->err.code;
@@ -642,26 +656,18 @@ SeisSegyErrCode write_trace_samples_fix(SeisOSegy *sgy, SeisTrace const *t) {
         SeisCommonSegy *com = sgy->com;
         char *buf = com->samp_buf;
         double const *samples = seis_trace_get_samples_const(t);
-        long long const sam_num = seis_trace_get_samples_num(t);
-        for (long long i = 0; i < sam_num; ++i)
+        long long const samp_num = seis_trace_get_samples_num(t);
+        for (long long i = 0; i < samp_num; ++i)
                 sgy->write_sample(sgy, &buf, samples[i]);
-        write_to_file(sgy, com->samp_buf,
-                      com->bytes_per_sample * com->samp_per_tr);
+        write_to_file(sgy, com->samp_buf, com->bytes_per_sample * samp_num);
         return com->err.code;
 }
 
 SeisSegyErrCode write_trace_samples_var(SeisOSegy *sgy, SeisTrace const *t) {
         SeisCommonSegy *com = sgy->com;
-        SeisTraceHeader const *hdr = seis_trace_get_header_const(t);
-        long long const *samp_num = seis_trace_header_get_int(hdr, "SAMP_NUM");
-        if (!samp_num || !*samp_num) {
-                com->err.code = SEIS_SEGY_ERR_BROKEN_FILE;
-                com->err.message =
-                    "variable trace length and no samples number specified";
-                goto error;
-        }
-        long long bytes_num = *samp_num * com->bytes_per_sample;
-        if (*samp_num != com->samp_per_tr) {
+        long long const samp_num = seis_trace_get_samples_num(t);
+        if (samp_num > com->samp_per_tr) {
+                long long bytes_num = samp_num * com->bytes_per_sample;
                 com->samp_buf = realloc(com->samp_buf, bytes_num);
                 if (!com->samp_buf) {
                         com->err.code = SEIS_SEGY_ERR_NO_MEM;
@@ -669,7 +675,7 @@ SeisSegyErrCode write_trace_samples_var(SeisOSegy *sgy, SeisTrace const *t) {
                             "can't get memory to write variable trace";
                         goto error;
                 }
-                com->samp_per_tr = *samp_num;
+                com->samp_per_tr = samp_num;
         }
         return write_trace_samples_fix(sgy, t);
 error:

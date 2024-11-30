@@ -70,6 +70,13 @@ read_write_su = executable('read_write_su', 'read_write_su.c',
 test('Test SU reading and writing', read_write_su,
   args : '../samples/suplane.su')
 
+read_su_write_segy = executable('read_su_write_segy', 'read_su_write_segy.c',
+  include_directories : inc,
+  link_with : SeisSegy,
+  dependencies : seistrace_dep)
+test('Test SU reading and SEGY writing', read_su_write_segy,
+  args : '../samples/suplane.su')
+
 print_trace_header = executable('print_trace_header', 'print_trace_header.c',
   include_directories : inc,
   link_with : SeisSegy,

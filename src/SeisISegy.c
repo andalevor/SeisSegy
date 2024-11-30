@@ -748,7 +748,7 @@ SeisSegyErrCode read_trc_smpls_var(SeisISegy *sgy, SeisTraceHeader *hdr,
                     "variable trace length and no samples number specified";
                 goto error;
         }
-        if (com->samp_per_tr != *samp_num) {
+        if (com->samp_per_tr < *samp_num) {
                 com->samp_per_tr = *samp_num;
                 void *res =
                     realloc(com->samp_buf, *samp_num * com->bytes_per_sample);
