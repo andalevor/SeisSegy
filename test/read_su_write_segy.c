@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
         }
         seis_isu_unref(&isgy);
         seis_osegy_unref(&osgy);
-        remove(tmp_name);
+        /*remove(tmp_name);*/
         free(tmp_name);
         return 0;
 error:

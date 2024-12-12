@@ -1,6 +1,7 @@
 project('SeisSegy', 'c',
   version : '0.0.1',
-  license : 'LGPL')
+  license : 'LGPL',
+  default_options : ['c_std=c11'])
 inc = include_directories('include', 'extern/mlib')
 cc = meson.get_compiler('c')
 m_dep = cc.find_library('m', required : false)
