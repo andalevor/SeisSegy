@@ -281,7 +281,9 @@ SeisSegyErrCode seis_osu_open(SeisOSU *su, char const *file_name) {
                 com->err.message = "can't open file for writing";
                 goto error;
         }
+#ifndef SU_BIG_ENDIAN
         com->bin_hdr.endianness = 0x01020304;
+#endif
         TRY(assign_raw_writers(sgy));
         com->bytes_per_sample = 4;
         com->bin_hdr.format_code = 1;

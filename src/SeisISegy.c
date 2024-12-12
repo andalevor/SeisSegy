@@ -266,7 +266,9 @@ SeisSegyErrCode seis_isu_open(SeisISU *su, char const *file_name) {
                 com->err.message = "file open error";
                 goto error;
         }
+#ifndef SU_BIG_ENDIAN
         com->bin_hdr.endianness = 0x01020304;
+#endif
         TRY(assign_raw_readers(sgy));
         com->bin_hdr.format_code = 5;
         sgy->read_sample = dbl_from_IEEE_float_native;
