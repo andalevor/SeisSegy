@@ -63,19 +63,26 @@ test('Test SEGY reading and writing 2I', read_write,
 test('Test SEGY reading and writing 4I', read_write,
   args : '../samples/4I.sgy')
 
+c_args = get_option('c_args')
+if '-DSU_BIG_ENDIAN' in c_args
+  su_file = '../samples/big_endian_suplane.su'
+else
+  su_file = '../samples/suplane.su'
+endif
+
 read_write_su = executable('read_write_su', 'read_write_su.c',
   include_directories : inc,
   link_with : SeisSegy,
   dependencies : seistrace_dep)
 test('Test SU reading and writing', read_write_su,
-  args : '../samples/suplane.su')
+  args : su_file)
 
 read_su_write_segy = executable('read_su_write_segy', 'read_su_write_segy.c',
   include_directories : inc,
   link_with : SeisSegy,
   dependencies : seistrace_dep)
 test('Test SU reading and SEGY writing', read_su_write_segy,
-  args : '../samples/suplane.su')
+  args : su_file)
 
 print_trace_header = executable('print_trace_header', 'print_trace_header.c',
   include_directories : inc,
