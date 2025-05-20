@@ -13,6 +13,6 @@ or
 meson setup -Dbuildtype=release -Dc_args=-DSU_BIG_ENDIAN build
 to read/write SU files always in big endian
 
-meson compile -C build
+meson compile -C build seissegy
 
 meson install -C build
