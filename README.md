@@ -4,15 +4,18 @@ SEGY r/w library
 # Build
 You will need SeisTrace library.
 
-git clone --recurse-submodules https://github.com/andalevor/SeisSegy.git
+1) git clone --recurse-submodules https://github.com/andalevor/SeisSegy.git
 
-cd SeisSegy
+2) cd SeisSegy
 
-meson setup -Dbuildtype=release build
+3) meson setup -Dbuildtype=release -Db_ndebug=true build 
+
 or
-meson setup -Dbuildtype=release -Dc_args=-DSU_BIG_ENDIAN build
+
+3) meson setup -Dbuildtype=release -Db_ndebug=true -Dc_args=-DSU_BIG_ENDIAN build
+
 to read/write SU files always in big endian
 
-meson compile -C build seissegy
+4) meson compile -C build seissegy
 
-meson install -C build
+5) meson install -C build
