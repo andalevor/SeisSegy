@@ -283,7 +283,8 @@ SeisSegyErrCode seis_isu_open(SeisISU *su, char const *file_name) {
                 goto error;
         }
         TRY(read_trc_hdr(sgy, hdr));
-        long long const *samp_num = seis_trace_header_get_int(hdr, "SAMP_NUM");
+        SeisTraceHeaderValue v = seis_trace_header_get(hdr, "SAMP_NUM");
+        long long const *samp_num = seis_trace_header_value_get_int(v);
         com->samp_per_tr = *samp_num;
         if (!samp_num) {
                 com->err.code = SEIS_SEGY_ERR_BROKEN_FILE;
@@ -743,7 +744,8 @@ error:
 SeisSegyErrCode read_trc_smpls_var(SeisISegy *sgy, SeisTraceHeader *hdr,
                                    SeisTrace **trc) {
         SeisCommonSegy *com = sgy->com;
-        long long const *samp_num = seis_trace_header_get_int(hdr, "SAMP_NUM");
+        SeisTraceHeaderValue v = seis_trace_header_get(hdr, "SAMP_NUM");
+        long long const *samp_num = seis_trace_header_value_get_int(v);
         if (!samp_num || !*samp_num) {
                 com->err.code = SEIS_SEGY_ERR_BROKEN_FILE;
                 com->err.message =
@@ -785,7 +787,8 @@ SeisSegyErrCode skip_trc_smpls_fix(SeisISegy *sgy, SeisTraceHeader *hdr) {
 
 SeisSegyErrCode skip_trc_smpls_var(SeisISegy *sgy, SeisTraceHeader *hdr) {
         SeisCommonSegy *com = sgy->com;
-        long long const *samp_num = seis_trace_header_get_int(hdr, "SAMP_NUM");
+        SeisTraceHeaderValue v = seis_trace_header_get(hdr, "SAMP_NUM");
+        long long const *samp_num = seis_trace_header_value_get_int(v);
         if (!samp_num) {
                 com->err.code = SEIS_SEGY_ERR_BROKEN_FILE;
                 com->err.message =
@@ -870,8 +873,10 @@ SeisSegyErrCode read_trc_hdr(SeisISegy *sgy, SeisTraceHeader *hdr) {
                 TRY(fill_from_file(sgy, com->hdr_buf, TRACE_HEADER_SIZE));
                 fill_hdr_from_fmt_arr(
                     sgy, mult_hdr_fmt_get(priv->trc_hdr_map, 1), hdr);
+                SeisTraceHeaderValue v =
+                    seis_trace_header_get(hdr, "ADD_HDR_NUM");
                 long long const *add_hdr_num =
-                    seis_trace_header_get_int(hdr, "ADD_TRC_HDR_NUM");
+                    seis_trace_header_value_get_int(v);
                 int to_read;
                 if (!*add_hdr_num)
                         to_read = com->bin_hdr.max_num_add_tr_headers - 1;

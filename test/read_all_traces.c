@@ -18,8 +18,9 @@ int main(int argc, char *argv[]) {
                 trc = seis_isegy_read_trace(sgy);
                 if (err->code)
                         goto error;
-                long long const *num = seis_trace_header_get_int(
+                SeisTraceHeaderValue v = seis_trace_header_get(
                     seis_trace_get_header_const(trc), "TRC_SEQ_LINE");
+                long long const *num = seis_trace_header_value_get_int(v);
                 if (!num)
                         goto error;
                 if (*num != ++counter)

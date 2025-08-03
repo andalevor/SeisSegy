@@ -562,6 +562,7 @@ void fill_buf_with_fmt_arr(SeisOSegy *sgy, single_hdr_fmt_t *arr,
                            SeisTraceHeader const *hdr) {
         char *ptr;
         char const *tmp;
+        SeisTraceHeaderValue v;
         long long const *i;
         double const *d;
         SeisCommonSegy *com = sgy->com;
@@ -571,53 +572,63 @@ void fill_buf_with_fmt_arr(SeisOSegy *sgy, single_hdr_fmt_t *arr,
                         ptr = com->hdr_buf + (*item)->offset;
                         switch ((*item)->format) {
                         case i8:
-                                i = seis_trace_header_get_int(
+                                v = seis_trace_header_get(
                                     hdr, string_get_cstr((*item)->name));
+                                i = seis_trace_header_value_get_int(v);
                                 sgy->write_i8(&ptr, i ? *i : 0);
                                 break;
                         case u8:
-                                i = seis_trace_header_get_int(
+                                v = seis_trace_header_get(
                                     hdr, string_get_cstr((*item)->name));
+                                i = seis_trace_header_value_get_int(v);
                                 sgy->write_u8(&ptr, i ? *i : 0);
                                 break;
                         case i16:
-                                i = seis_trace_header_get_int(
+                                v = seis_trace_header_get(
                                     hdr, string_get_cstr((*item)->name));
+                                i = seis_trace_header_value_get_int(v);
                                 sgy->write_i16(&ptr, i ? *i : 0);
                                 break;
                         case u16:
-                                i = seis_trace_header_get_int(
+                                v = seis_trace_header_get(
                                     hdr, string_get_cstr((*item)->name));
+                                i = seis_trace_header_value_get_int(v);
                                 sgy->write_u16(&ptr, i ? *i : 0);
                                 break;
                         case i32:
-                                i = seis_trace_header_get_int(
+                                v = seis_trace_header_get(
                                     hdr, string_get_cstr((*item)->name));
+                                i = seis_trace_header_value_get_int(v);
                                 sgy->write_i32(&ptr, i ? *i : 0);
                                 break;
                         case u32:
-                                i = seis_trace_header_get_int(
+                                v = seis_trace_header_get(
                                     hdr, string_get_cstr((*item)->name));
+                                i = seis_trace_header_value_get_int(v);
                                 sgy->write_u32(&ptr, i ? *i : 0);
                                 break;
                         case i64:
-                                i = seis_trace_header_get_int(
+                                v = seis_trace_header_get(
                                     hdr, string_get_cstr((*item)->name));
+                                i = seis_trace_header_value_get_int(v);
                                 sgy->write_i64(&ptr, i ? *i : 0);
                                 break;
                         case u64:
-                                i = seis_trace_header_get_int(
+                                v = seis_trace_header_get(
                                     hdr, string_get_cstr((*item)->name));
+                                i = seis_trace_header_value_get_int(v);
                                 sgy->write_u64(&ptr, i ? *i : 0);
                                 break;
                         case f32:
-                                d = seis_trace_header_get_real(
+                                v = seis_trace_header_get(
                                     hdr, string_get_cstr((*item)->name));
+                                d = seis_trace_header_value_get_real(v);
                                 sgy->write_IEEE_float(sgy, &ptr, d ? *d : 0);
                                 break;
                         case f64:
-                                d = seis_trace_header_get_real(
+                                v = seis_trace_header_get(
                                     hdr, string_get_cstr((*item)->name));
+                                d = seis_trace_header_value_get_real(v);
                                 sgy->write_IEEE_double(sgy, &ptr, d ? *d : 0);
                                 break;
                         case b64:
@@ -636,8 +647,10 @@ SeisSegyErrCode write_trace_header(SeisOSegy *sgy, SeisTraceHeader const *hdr) {
         fill_buf_with_fmt_arr(sgy, mult_hdr_fmt_get(priv->trc_hdr_map, 0), hdr);
         TRY(write_to_file(sgy, com->hdr_buf, TRACE_HEADER_SIZE));
         if (com->bin_hdr.max_num_add_tr_headers) {
+                SeisTraceHeaderValue v =
+                    seis_trace_header_get(hdr, "ADD_TRC_HDR_NUM");
                 long long const *add_hdr_num =
-                    seis_trace_header_get_int(hdr, "ADD_TRC_HDR_NUM");
+                    seis_trace_header_value_get_int(v);
                 int to_write;
                 if (!*add_hdr_num)
                         to_write = com->bin_hdr.max_num_add_tr_headers;

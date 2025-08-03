@@ -18,359 +18,448 @@ int main(int argc, char *argv[]) {
         if (err->code)
                 goto error;
         SeisTraceHeader const *hdr = seis_trace_get_header_const(trc);
-        long long const *p_val = seis_trace_header_get_int(hdr, "TRC_SEQ_LINE");
+        SeisTraceHeaderValue v = seis_trace_header_get(hdr, "TRC_SEQ_LINE");
+        long long const *p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "TRC_SEQ_LINE:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "TRC_SEQ_SGY");
+        v = seis_trace_header_get(hdr, "TRC_SEQ_SGY");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "TRC_SEQ_SGY:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "FFID");
+        v = seis_trace_header_get(hdr, "FFID");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "FFID:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "CHAN");
+        v = seis_trace_header_get(hdr, "CHAN");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "CHAN:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "ESP");
+        v = seis_trace_header_get(hdr, "ESP");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "ESP:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "ENS_NO");
+        v = seis_trace_header_get(hdr, "ENS_NO");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "ENS_NO:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SEQ_NO");
+        v = seis_trace_header_get(hdr, "SEQ_NO");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SEQ_NO:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "TRACE_ID");
+        v = seis_trace_header_get(hdr, "TRACE_ID");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "TRACE_ID:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "VERT_SUM");
+        v = seis_trace_header_get(hdr, "VERT_SUM");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "VERT_SUM:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "HOR_SUM");
+        v = seis_trace_header_get(hdr, "HOR_SUM");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "HOR_SUM:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "DATA_USE");
+        v = seis_trace_header_get(hdr, "DATA_USE");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "DATA_USE:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "OFFSET");
+        v = seis_trace_header_get(hdr, "OFFSET");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "OFFSET:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "R_ELEV");
+        v = seis_trace_header_get(hdr, "R_ELEV");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "R_ELEV:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "S_ELEV");
+        v = seis_trace_header_get(hdr, "S_ELEV");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "S_ELEV:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "S_DEPTH");
+        v = seis_trace_header_get(hdr, "S_DEPTH");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "S_DEPTH:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "R_DATUM");
+        v = seis_trace_header_get(hdr, "R_DATUM");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "R_DATUM:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "S_DATUM");
+        v = seis_trace_header_get(hdr, "S_DATUM");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "S_DATUM:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "S_WATER");
+        v = seis_trace_header_get(hdr, "S_WATER");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "S_WATER:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "R_WATER");
+        v = seis_trace_header_get(hdr, "R_WATER");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "R_WATER:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "ELEV_SCALAR");
+        v = seis_trace_header_get(hdr, "ELEV_SCALAR");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "ELEV_SCALAR:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "COORD_SCALAR");
+        v = seis_trace_header_get(hdr, "COORD_SCALAR");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "COORD_SCALAR:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SOU_X");
+        v = seis_trace_header_get(hdr, "SOU_X");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SOU_X:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SOU_Y");
+        v = seis_trace_header_get(hdr, "SOU_Y");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SOU_Y:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "REC_X");
+        v = seis_trace_header_get(hdr, "REC_X");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "REC_X:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "REC_Y");
+        v = seis_trace_header_get(hdr, "REC_Y");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "REC_Y:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "COORD_UNITS");
+        v = seis_trace_header_get(hdr, "COORD_UNITS");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "COORD_UNITS:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "WEATH_VEL");
+        v = seis_trace_header_get(hdr, "WEATH_VEL");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "WEATH_VEL:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SUBWEATH_VEL");
+        v = seis_trace_header_get(hdr, "SUBWEATH_VEL");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SUBWEATH_VEL:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "S_UPHOLE");
+        v = seis_trace_header_get(hdr, "S_UPHOLE");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "S_UPHOLE:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "R_UPHOLE");
+        v = seis_trace_header_get(hdr, "R_UPHOLE");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "R_UPHOLE:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "S_STAT");
+        v = seis_trace_header_get(hdr, "S_STAT");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "S_STAT:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "R_STAT");
+        v = seis_trace_header_get(hdr, "R_STAT");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "R_STAT:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "TOT_STAT");
+        v = seis_trace_header_get(hdr, "TOT_STAT");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "TOT_STAT:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "LAG_A");
+        v = seis_trace_header_get(hdr, "LAG_A");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "LAG_A:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "LAG_B");
+        v = seis_trace_header_get(hdr, "LAG_B");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "LAG_B:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "DELAY_TIME");
+        v = seis_trace_header_get(hdr, "DELAY_TIME");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "DELAY_TIME:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "MUTE_START");
+        v = seis_trace_header_get(hdr, "MUTE_START");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "MUTE_START:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "MUTE_END");
+        v = seis_trace_header_get(hdr, "MUTE_END");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "MUTE_END:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SAMP_NUM");
+        v = seis_trace_header_get(hdr, "SAMP_NUM");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SAMP_NUM:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SAMP_INT");
+        v = seis_trace_header_get(hdr, "SAMP_INT");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SAMP_INT:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "GAIN_TYPE");
+        v = seis_trace_header_get(hdr, "GAIN_TYPE");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "GAIN_TYPE:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "GAIN_CONST");
+        v = seis_trace_header_get(hdr, "GAIN_CONST");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "GAIN_CONST:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "INIT_GAIN");
+        v = seis_trace_header_get(hdr, "INIT_GAIN");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "INIT_GAIN:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "CORRELATED");
+        v = seis_trace_header_get(hdr, "CORRELATED");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "CORRELATED:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SW_START");
+        v = seis_trace_header_get(hdr, "SW_START");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SW_START:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SW_END");
+        v = seis_trace_header_get(hdr, "SW_END");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SW_END:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SW_LENGTH");
+        v = seis_trace_header_get(hdr, "SW_LENGTH");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SW_LENGTH:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SW_TYPE");
+        v = seis_trace_header_get(hdr, "SW_TYPE");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SW_TYPE:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SW_TAPER_START");
+        v = seis_trace_header_get(hdr, "SW_TAPER_START");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SW_TAPER_START:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SW_TAPER_END");
+        v = seis_trace_header_get(hdr, "SW_TAPER_END");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SW_TAPER_END:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "TAPER_TYPE");
+        v = seis_trace_header_get(hdr, "TAPER_TYPE");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "TAPER_TYPE:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "ALIAS_FILT_FREQ");
+        v = seis_trace_header_get(hdr, "ALIAS_FILT_FREQ");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "ALIAS_FILT_FREQ:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "ALIAS_FILT_SLOPE");
+        v = seis_trace_header_get(hdr, "ALIAS_FILT_SLOPE");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "ALIAS_FILE_SLOPE:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "NOTCH_FILT_FREQ");
+        v = seis_trace_header_get(hdr, "NOTCH_FILT_FREQ");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "NOTCH_FILE_FREQ:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "NOTCH_FILT_SLOPE");
+        v = seis_trace_header_get(hdr, "NOTCH_FILT_SLOPE");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "NOTCH_FILT_SLOPE:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "LOW_CUT_FREQ");
+        v = seis_trace_header_get(hdr, "LOW_CUT_FREQ");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "LOW_CUT_FREQ:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "HIGH_CUT_FREQ");
+        v = seis_trace_header_get(hdr, "HIGH_CUT_FREQ");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "HIGH_CUT_FREQ:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "LOW_CUT_SLOPE");
+        v = seis_trace_header_get(hdr, "LOW_CUT_SLOPE");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "LOW_CUT_SLOPE:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "HIGH_CUT_SLOPE");
+        v = seis_trace_header_get(hdr, "HIGH_CUT_SLOPE");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "HIGH_CUT_SLOPE:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "YEAR");
+        v = seis_trace_header_get(hdr, "YEAR");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "YEAR:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "DAY");
+        v = seis_trace_header_get(hdr, "DAY");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "DAY:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "HOUR");
+        v = seis_trace_header_get(hdr, "HOUR");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "HOUR:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "MINUTE");
+        v = seis_trace_header_get(hdr, "MINUTE");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "MINUTE:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SECOND");
+        v = seis_trace_header_get(hdr, "SECOND");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SECOND:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "TIME_BASIS_CODE");
+        v = seis_trace_header_get(hdr, "TIME_BASIS_CODE");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "TIME_BASIS_CODE:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "TRACE_WEIGHT");
+        v = seis_trace_header_get(hdr, "TRACE_WEIGHT");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "TRACE_WEIGHT:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "GROUP_NUM_ROLL");
+        v = seis_trace_header_get(hdr, "GROUP_NUM_ROLL");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "GROUP_NUM_ROLL:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "GROUP_NUM_LAST");
+        v = seis_trace_header_get(hdr, "GROUP_NUM_LAST");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "GROUP_NUM_LAST:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "GAP_SIZE");
+        v = seis_trace_header_get(hdr, "GAP_SIZE");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "GAP_SIZE:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "OVER_TRAVEL");
+        v = seis_trace_header_get(hdr, "OVER_TRAVEL");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "OVER_TRAVEL:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "CDP_X");
+        v = seis_trace_header_get(hdr, "CDP_X");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "CDP_X:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "CDP_Y");
+        v = seis_trace_header_get(hdr, "CDP_Y");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "CDP_Y:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "INLINE");
+        v = seis_trace_header_get(hdr, "INLINE");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "INLINE:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "XLINE");
+        v = seis_trace_header_get(hdr, "XLINE");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "XLINE:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SP_NUM");
+        v = seis_trace_header_get(hdr, "SP_NUM");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SP_NUM:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SP_NUM_SCALAR");
+        v = seis_trace_header_get(hdr, "SP_NUM_SCALAR");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SP_NUM_SCALAR:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "TR_VAL_UNIT");
+        v = seis_trace_header_get(hdr, "TR_VAL_UNIT");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "TR_VAL_UNIT:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "TRANS_CONST_MANT");
+        v = seis_trace_header_get(hdr, "TRANS_CONST_MANT");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "TRANS_CONST_MANT:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "TRANS_CONST_EXP");
+        v = seis_trace_header_get(hdr, "TRANS_CONST_EXP");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "TRANS_CONST_EXP:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "TRANS_UNITS");
+        v = seis_trace_header_get(hdr, "TRANS_UNITS");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "TRANS_UNITS:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "DEVICE_ID");
+        v = seis_trace_header_get(hdr, "DEVICE_ID");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "DEVICE_ID:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "TIME_SCALAR");
+        v = seis_trace_header_get(hdr, "TIME_SCALAR");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "TIME_SCALAR:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SOURCE_TYPE");
+        v = seis_trace_header_get(hdr, "SOURCE_TYPE");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SOURCE_TYPE:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SOU_V_DIR");
+        v = seis_trace_header_get(hdr, "SOU_V_DIR");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SOU_V_DIR:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SOU_X_DIR");
+        v = seis_trace_header_get(hdr, "SOU_X_DIR");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SOU_X_DIR:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SOU_I_DIR");
+        v = seis_trace_header_get(hdr, "SOU_I_DIR");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SOU_I_DIR:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SOU_MEAS_MANT");
+        v = seis_trace_header_get(hdr, "SOU_MEAS_MANT");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SOU_MEAS_MANT:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SOU_MEAS_EXP");
+        v = seis_trace_header_get(hdr, "SOU_MEAS_EXP");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SOU_MEAS_EXP:", *p_val);
-        p_val = seis_trace_header_get_int(hdr, "SOU_MEAS_UNIT");
+        v = seis_trace_header_get(hdr, "SOU_MEAS_UNIT");
+        p_val = seis_trace_header_value_get_int(v);
         if (!p_val)
                 goto error;
         printf("%20s%10lld\n", "SOU_MEAS_UNIT:", *p_val);
