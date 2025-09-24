@@ -63,7 +63,7 @@ SeisSegyErrCode seis_osu_open(SeisOSU *su, char const *file_name);
  * \param trc Pointer to trace structure to write.
  * \return error code to check
  */
-SeisSegyErrCode seis_osu_write_trace(SeisOSU *su, SeisTrace const *trc);
+SeisSegyErrCode seis_osu_write_trace(SeisOSU *su, SeisTrace *trc);
 
 /**
  * \fn seis_osu_remap_trace_header

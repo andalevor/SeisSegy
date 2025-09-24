@@ -220,6 +220,14 @@ char const *seis_isegy_get_text_header(SeisISegy const *sgy, size_t idx) {
         return seis_common_segy_get_text_header(sgy->com, idx);
 }
 
+size_t seis_isegy_get_stanzas_num(SeisISegy const *sgy) {
+        return seis_common_segy_get_stanzas_num(sgy->com);
+}
+
+char const *seis_isegy_get_stanza(SeisISegy const *sgy, size_t idx) {
+        return seis_common_segy_get_stanza(sgy->com, idx);
+}
+
 void seis_isegy_rewind(SeisISegy *sgy) {
         fseek(sgy->com->file, sgy->first_trace_pos, SEEK_SET);
         sgy->curr_pos = sgy->first_trace_pos;

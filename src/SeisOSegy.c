@@ -24,14 +24,13 @@ static SeisSegyErrCode write_text_header(SeisOSegy *sgy);
 static SeisSegyErrCode write_bin_header(SeisOSegy *sgy);
 static SeisSegyErrCode write_ext_text_headers(SeisOSegy *sgy);
 static SeisSegyErrCode write_trailer_stanzas(SeisOSegy *sgy);
-static SeisSegyErrCode write_trace_header(SeisOSegy *sgy,
-                                          SeisTraceHeader const *hdr);
+static SeisSegyErrCode write_trace_header(SeisOSegy *sgy, SeisTraceHeader *hdr);
 static SeisSegyErrCode write_trace_samples_fix(SeisOSegy *sgy,
                                                SeisTrace const *t);
 static SeisSegyErrCode write_trace_samples_var(SeisOSegy *sgy,
                                                SeisTrace const *t);
 static void fill_buf_with_fmt_arr(SeisOSegy *sgy, single_hdr_fmt_t *arr,
-                                  SeisTraceHeader const *hdr);
+                                  SeisTraceHeader *hdr);
 static SeisSegyErrCode write_to_file(SeisOSegy *sgy, char const *buf,
                                      size_t num);
 
@@ -230,9 +229,9 @@ void seis_osegy_add_ext_text_header(SeisOSegy *sgy, char *hdr) {
         seis_common_segy_add_text_header(com, hdr);
 }
 
-SeisSegyErrCode seis_osegy_write_trace(SeisOSegy *sgy, SeisTrace const *trc) {
+SeisSegyErrCode seis_osegy_write_trace(SeisOSegy *sgy, SeisTrace *trc) {
         SeisSegyErr const *err = seis_osegy_get_error(sgy);
-        TRY(write_trace_header(sgy, seis_trace_get_header_const(trc)));
+        TRY(write_trace_header(sgy, seis_trace_get_header(trc)));
         return sgy->write_trace_samples(sgy, trc);
 error:
         return err->code;
@@ -297,9 +296,9 @@ error:
         return com->err.code;
 }
 
-SeisSegyErrCode seis_osu_write_trace(SeisOSU *su, SeisTrace const *trc) {
+SeisSegyErrCode seis_osu_write_trace(SeisOSU *su, SeisTrace *trc) {
         SeisSegyErr const *err = seis_osu_get_error(su);
-        TRY(write_trace_header(su->sgy, seis_trace_get_header_const(trc)));
+        TRY(write_trace_header(su->sgy, seis_trace_get_header(trc)));
         return su->sgy->write_trace_samples(su->sgy, trc);
 error:
         return err->code;
@@ -560,7 +559,7 @@ SeisSegyErrCode write_trailer_stanzas(SeisOSegy *sgy) {
 }
 
 void fill_buf_with_fmt_arr(SeisOSegy *sgy, single_hdr_fmt_t *arr,
-                           SeisTraceHeader const *hdr) {
+                           SeisTraceHeader *hdr) {
         char *ptr;
         char const *tmp;
         SeisTraceHeaderValue v;
@@ -642,7 +641,7 @@ void fill_buf_with_fmt_arr(SeisOSegy *sgy, single_hdr_fmt_t *arr,
                 }
 }
 
-SeisSegyErrCode write_trace_header(SeisOSegy *sgy, SeisTraceHeader const *hdr) {
+SeisSegyErrCode write_trace_header(SeisOSegy *sgy, SeisTraceHeader *hdr) {
         SeisCommonSegy *com = sgy->com;
         SeisCommonSegyPrivate *priv = (SeisCommonSegyPrivate *)com;
         fill_buf_with_fmt_arr(sgy, mult_hdr_fmt_get(priv->trc_hdr_map, 0), hdr);

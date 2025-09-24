@@ -95,7 +95,7 @@ void seis_osegy_add_trailer_stanza(SeisOSegy *sgy, char *buf);
  * \param trc Pointer to trace structure to write.
  * \return error code to check
  */
-SeisSegyErrCode seis_osegy_write_trace(SeisOSegy *sgy, SeisTrace const *trc);
+SeisSegyErrCode seis_osegy_write_trace(SeisOSegy *sgy, SeisTrace *trc);
 
 /**
  * \fn seis_osegy_remap_trace_header

@@ -85,10 +85,27 @@ size_t seis_isegy_get_text_headers_num(SeisISegy const *sgy);
  * \fn seis_isegy_get_text_header
  * \brief gets text header by its index.
  * \param sgy SeisISegy instance.
- * \param idx index of tet header. main headers index 0
+ * \param idx index of text header. main headers index 0
  * \return nonNULL. Zero terminated header. You should not free this memory.
  */
 char const *seis_isegy_get_text_header(SeisISegy const *sgy, size_t idx);
+
+/**
+ * \fn seis_isegy_get_stanzas_num
+ * \brief gets number of trailer stanzas in SEGY
+ * \param sgy SeisISegy instance.
+ * return number of trailer stanzas in file.
+ */
+size_t seis_isegy_get_stanzas_num(SeisISegy const *sgy);
+
+/**
+ * \fn seis_isegy_get_stanza
+ * \brief gets trailer stanza by its index.
+ * \param sgy SeisISegy instance.
+ * \param idx index of trailer stanza
+ * \return nonNULL. Zero terminated stanza. You should not free this memory.
+ */
+char const *seis_isegy_get_stanza(SeisISegy const *sgy, size_t idx);
 
 /**
  * \fn seis_isegy_get_binary_header
