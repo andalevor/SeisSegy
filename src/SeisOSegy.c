@@ -128,7 +128,8 @@ void seis_osegy_unref(SeisOSegy **sgy) {
                                         com->bin_hdr.samp_per_tr =
                                             com->bin_hdr.ext_samp_per_tr =
                                                 com->samp_per_tr;
-                                        fseek(com->file, TEXT_HEADER_SIZE,
+                                        fseek(com->file,
+                                              SEIS_SEGY_TEXT_HEADER_SIZE,
                                               SEEK_SET);
                                         write_bin_header(*sgy);
                                 }
@@ -442,7 +443,7 @@ SeisSegyErrCode write_text_header(SeisOSegy *sgy) {
         char const *hdr;
         char *buf = NULL;
         if (!hdr_num) {
-                buf = (char *)malloc(TEXT_HEADER_SIZE + 1);
+                buf = (char *)malloc(SEIS_SEGY_TEXT_HEADER_SIZE + 1);
                 if (!buf) {
                         com->err.code = SEIS_SEGY_ERR_NO_MEM;
                         com->err.message = "no memory for text header";
@@ -461,14 +462,14 @@ SeisSegyErrCode write_text_header(SeisOSegy *sgy) {
                         def_hdr = seis_segy_default_text_header_rev2;
                         break;
                 }
-                memcpy(buf, def_hdr, TEXT_HEADER_SIZE);
-                buf[TEXT_HEADER_SIZE] = 0;
+                memcpy(buf, def_hdr, SEIS_SEGY_TEXT_HEADER_SIZE);
+                buf[SEIS_SEGY_TEXT_HEADER_SIZE] = 0;
                 ascii_to_ebcdic(buf);
                 hdr = buf;
         } else {
                 hdr = seis_common_segy_get_text_header(com, 0);
         }
-        write_to_file(sgy, hdr, TEXT_HEADER_SIZE);
+        write_to_file(sgy, hdr, SEIS_SEGY_TEXT_HEADER_SIZE);
         if (buf)
                 free(buf);
         return com->err.code;
@@ -480,12 +481,12 @@ error:
 
 SeisSegyErrCode write_bin_header(SeisOSegy *sgy) {
         SeisCommonSegy *com = sgy->com;
-        char *const bin_buf = (char *)malloc(BIN_HEADER_SIZE);
+        char *const bin_buf = (char *)malloc(SEIS_SEGY_BIN_HEADER_SIZE);
         if (!bin_buf) {
                 com->err.code = SEIS_SEGY_ERR_NO_MEM;
                 com->err.message = "no memory for bin header";
         }
-        memset(bin_buf, 0, BIN_HEADER_SIZE);
+        memset(bin_buf, 0, SEIS_SEGY_BIN_HEADER_SIZE);
         char *ptr = bin_buf;
         sgy->write_i32(&ptr, com->bin_hdr.job_id);
         sgy->write_i32(&ptr, com->bin_hdr.line_num);
@@ -532,8 +533,8 @@ SeisSegyErrCode write_bin_header(SeisOSegy *sgy) {
         sgy->write_u64(&ptr, com->bin_hdr.num_of_tr_in_file);
         sgy->write_u64(&ptr, com->bin_hdr.byte_off_of_first_tr);
         sgy->write_i32(&ptr, com->bin_hdr.num_of_trailer_stanza);
-        fseek(com->file, TEXT_HEADER_SIZE, SEEK_SET);
-        write_to_file(sgy, bin_buf, BIN_HEADER_SIZE);
+        fseek(com->file, SEIS_SEGY_TEXT_HEADER_SIZE, SEEK_SET);
+        write_to_file(sgy, bin_buf, SEIS_SEGY_BIN_HEADER_SIZE);
         free(bin_buf);
         return com->err.code;
 }
@@ -543,7 +544,7 @@ SeisSegyErrCode write_ext_text_headers(SeisOSegy *sgy) {
         size_t num = seis_common_segy_get_text_headers_num(com);
         for (size_t i = 1; i < num; ++i) {
                 char const *hdr = seis_common_segy_get_text_header(com, i);
-                write_to_file(sgy, hdr, TEXT_HEADER_SIZE);
+                write_to_file(sgy, hdr, SEIS_SEGY_TEXT_HEADER_SIZE);
         }
         return com->err.code;
 }
@@ -553,7 +554,7 @@ SeisSegyErrCode write_trailer_stanzas(SeisOSegy *sgy) {
         size_t num = seis_common_segy_get_stanzas_num(com);
         for (size_t i = 1; i < num; ++i) {
                 char const *hdr = seis_common_segy_get_stanza(com, i);
-                write_to_file(sgy, hdr, TEXT_HEADER_SIZE);
+                write_to_file(sgy, hdr, SEIS_SEGY_TEXT_HEADER_SIZE);
         }
         return com->err.code;
 }
@@ -566,7 +567,7 @@ void fill_buf_with_fmt_arr(SeisOSegy *sgy, single_hdr_fmt_t *arr,
         long long const *i;
         double const *d;
         SeisCommonSegy *com = sgy->com;
-        memset(com->hdr_buf, 0, TRACE_HEADER_SIZE);
+        memset(com->hdr_buf, 0, SEIS_SEGY_TRACE_HEADER_SIZE);
         for
                 M_EACH(item, *arr, M_OPL_single_hdr_fmt_t()) {
                         ptr = com->hdr_buf + (*item)->offset;
@@ -645,7 +646,7 @@ SeisSegyErrCode write_trace_header(SeisOSegy *sgy, SeisTraceHeader const *hdr) {
         SeisCommonSegy *com = sgy->com;
         SeisCommonSegyPrivate *priv = (SeisCommonSegyPrivate *)com;
         fill_buf_with_fmt_arr(sgy, mult_hdr_fmt_get(priv->trc_hdr_map, 0), hdr);
-        TRY(write_to_file(sgy, com->hdr_buf, TRACE_HEADER_SIZE));
+        TRY(write_to_file(sgy, com->hdr_buf, SEIS_SEGY_TRACE_HEADER_SIZE));
         if (com->bin_hdr.max_num_add_tr_headers) {
                 SeisTraceHeaderValue v =
                     seis_trace_header_get(hdr, "ADD_TRC_HDR_NUM");
@@ -660,7 +661,7 @@ SeisSegyErrCode write_trace_header(SeisOSegy *sgy, SeisTraceHeader const *hdr) {
                         fill_buf_with_fmt_arr(
                             sgy, mult_hdr_fmt_get(priv->trc_hdr_map, i), hdr);
                         TRY(write_to_file(sgy, com->hdr_buf,
-                                          TRACE_HEADER_SIZE));
+                                          SEIS_SEGY_TRACE_HEADER_SIZE));
                 }
         }
 error:

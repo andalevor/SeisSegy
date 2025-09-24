@@ -375,15 +375,15 @@ SeisSegyErrCode
 read_text_header(SeisISegy *sgy,
                  void (*add_func)(SeisCommonSegy *, char const *), int num) {
         SeisCommonSegy *com = sgy->com;
-        char *text_buf = (char *)malloc(TEXT_HEADER_SIZE + 1);
-        text_buf[TEXT_HEADER_SIZE] = '\0';
+        char *text_buf = (char *)malloc(SEIS_SEGY_TEXT_HEADER_SIZE + 1);
+        text_buf[SEIS_SEGY_TEXT_HEADER_SIZE] = '\0';
         if (!text_buf) {
                 com->err.code = SEIS_SEGY_ERR_NO_MEM;
                 com->err.message = "no memory for text header buf";
                 goto error;
         }
         for (int i = 0; i < num; ++i) {
-                TRY(fill_from_file(sgy, text_buf, TEXT_HEADER_SIZE));
+                TRY(fill_from_file(sgy, text_buf, SEIS_SEGY_TEXT_HEADER_SIZE));
                 add_func(sgy->com, text_buf);
         }
         free(text_buf);
@@ -396,12 +396,12 @@ error:
 
 SeisSegyErrCode read_bin_header(SeisISegy *sgy) {
         SeisCommonSegy *com = sgy->com;
-        char *const bin_buf = (char *)malloc(BIN_HEADER_SIZE);
+        char *const bin_buf = (char *)malloc(SEIS_SEGY_BIN_HEADER_SIZE);
         if (!bin_buf) {
                 com->err.code = SEIS_SEGY_ERR_NO_MEM;
                 com->err.message = "no memory for bin header";
         }
-        TRY(fill_from_file(sgy, bin_buf, BIN_HEADER_SIZE));
+        TRY(fill_from_file(sgy, bin_buf, SEIS_SEGY_BIN_HEADER_SIZE));
         memcpy(&com->bin_hdr.endianness, bin_buf + 96, sizeof(int32_t));
         TRY(assign_raw_readers(sgy));
         char const *ptr = bin_buf;
@@ -608,7 +608,7 @@ SeisSegyErrCode read_trailer_stanzas(SeisISegy *sgy) {
         int32_t stanz_num = com->bin_hdr.num_of_trailer_stanza;
         /* skip if no trailer stanzas */
         if (stanz_num) {
-                char *text_buf = (char *)malloc(TEXT_HEADER_SIZE);
+                char *text_buf = (char *)malloc(SEIS_SEGY_TEXT_HEADER_SIZE);
                 if (!text_buf) {
                         com->err.code = SEIS_SEGY_ERR_NO_MEM;
                         com->err.message = "no mem for trailer stanza";
@@ -630,7 +630,7 @@ SeisSegyErrCode read_trailer_stanzas(SeisISegy *sgy) {
                                 fseek(
                                     com->file,
                                     (com->bytes_per_sample * com->samp_per_tr +
-                                     TRACE_HEADER_SIZE *
+                                     SEIS_SEGY_TRACE_HEADER_SIZE *
                                          com->bin_hdr.max_num_add_tr_headers) *
                                         com->bin_hdr.num_of_tr_in_file,
                                     SEEK_CUR);
@@ -653,8 +653,9 @@ SeisSegyErrCode read_trailer_stanzas(SeisISegy *sgy) {
                         } else {
                                 for (uint64_t i = 0;
                                      i < com->bin_hdr.num_of_tr_in_file; ++i) {
-                                        TRY(fill_from_file(sgy, com->hdr_buf,
-                                                           TRACE_HEADER_SIZE));
+                                        TRY(fill_from_file(
+                                            sgy, com->hdr_buf,
+                                            SEIS_SEGY_TRACE_HEADER_SIZE));
                                         char const *ptr = com->hdr_buf + 114;
                                         uint32_t trc_samp_num =
                                             sgy->read_i16(&ptr);
@@ -662,7 +663,7 @@ SeisSegyErrCode read_trailer_stanzas(SeisISegy *sgy) {
                                                 .max_num_add_tr_headers) {
                                                 TRY(fill_from_file(
                                                     sgy, com->hdr_buf,
-                                                    TRACE_HEADER_SIZE));
+                                                    SEIS_SEGY_TRACE_HEADER_SIZE));
                                                 ptr = com->hdr_buf + 136;
                                                 trc_samp_num =
                                                     sgy->read_u32(&ptr);
@@ -674,10 +675,11 @@ SeisSegyErrCode read_trailer_stanzas(SeisISegy *sgy) {
                                                         ? add_tr_hdr_num
                                                         : com->bin_hdr
                                                               .max_num_add_tr_headers;
-                                                fseek(com->file,
-                                                      (add_tr_hdr_num - 1) *
-                                                          TRACE_HEADER_SIZE,
-                                                      SEEK_CUR);
+                                                fseek(
+                                                    com->file,
+                                                    (add_tr_hdr_num - 1) *
+                                                        SEIS_SEGY_TRACE_HEADER_SIZE,
+                                                    SEEK_CUR);
                                         }
                                         fseek(com->file,
                                               trc_samp_num *
@@ -704,7 +706,7 @@ SeisSegyErrCode read_trailer_stanzas(SeisISegy *sgy) {
                 } else {
                         fseek(com->file,
                               com->bin_hdr.num_of_trailer_stanza *
-                                  TEXT_HEADER_SIZE,
+                                  SEIS_SEGY_TEXT_HEADER_SIZE,
                               SEEK_END);
                         sgy->end_of_data = ftell(com->file);
                         TRY(read_text_header(
@@ -867,10 +869,11 @@ void fill_hdr_from_fmt_arr(SeisISegy *sgy, single_hdr_fmt_t *arr,
 SeisSegyErrCode read_trc_hdr(SeisISegy *sgy, SeisTraceHeader *hdr) {
         SeisCommonSegy *com = sgy->com;
         SeisCommonSegyPrivate *priv = (SeisCommonSegyPrivate *)com;
-        TRY(fill_from_file(sgy, com->hdr_buf, TRACE_HEADER_SIZE));
+        TRY(fill_from_file(sgy, com->hdr_buf, SEIS_SEGY_TRACE_HEADER_SIZE));
         fill_hdr_from_fmt_arr(sgy, mult_hdr_fmt_get(priv->trc_hdr_map, 0), hdr);
         if (com->bin_hdr.max_num_add_tr_headers) {
-                TRY(fill_from_file(sgy, com->hdr_buf, TRACE_HEADER_SIZE));
+                TRY(fill_from_file(sgy, com->hdr_buf,
+                                   SEIS_SEGY_TRACE_HEADER_SIZE));
                 fill_hdr_from_fmt_arr(
                     sgy, mult_hdr_fmt_get(priv->trc_hdr_map, 1), hdr);
                 SeisTraceHeaderValue v =
@@ -884,7 +887,7 @@ SeisSegyErrCode read_trc_hdr(SeisISegy *sgy, SeisTraceHeader *hdr) {
                         to_read = *add_hdr_num - 1;
                 for (int i = 2; i < 2 + to_read; ++i) {
                         TRY(fill_from_file(sgy, com->hdr_buf,
-                                           TRACE_HEADER_SIZE));
+                                           SEIS_SEGY_TRACE_HEADER_SIZE));
                         fill_hdr_from_fmt_arr(
                             sgy, mult_hdr_fmt_get(priv->trc_hdr_map, i), hdr);
                 }

@@ -13,9 +13,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define TEXT_HEADER_SIZE 3200
-#define BIN_HEADER_SIZE 400
-#define TRACE_HEADER_SIZE 240
+#define SEIS_SEGY_TEXT_HEADER_SIZE 3200
+#define SEIS_SEGY_BIN_HEADER_SIZE 400
+#define SEIS_SEGY_TRACE_HEADER_SIZE 240
 
 enum FORMAT { i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, b64 };
 

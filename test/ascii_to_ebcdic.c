@@ -37,7 +37,7 @@ error:
 }
 
 void print_text_header(char const *str) {
-        for (size_t i = 0; i < TEXT_HEADER_SIZE; ++i) {
+        for (size_t i = 0; i < SEIS_SEGY_TEXT_HEADER_SIZE; ++i) {
                 printf("%c", str[i]);
                 if (!((i + 1) % 80))
                         printf("\n");

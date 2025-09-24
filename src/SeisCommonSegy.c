@@ -17,7 +17,7 @@ SeisCommonSegy *seis_common_segy_new(void) {
         memset(&priv->com.bin_hdr, 0, sizeof(struct SeisSegyBinHdr));
         priv->com.err.code = SEIS_SEGY_ERR_OK;
         priv->com.err.message = "";
-        priv->com.hdr_buf = (char *)malloc(TRACE_HEADER_SIZE);
+        priv->com.hdr_buf = (char *)malloc(SEIS_SEGY_TRACE_HEADER_SIZE);
         if (!priv->com.hdr_buf)
                 return NULL;
         priv->com.samp_buf = NULL;
@@ -85,7 +85,7 @@ SeisSegyErrCode seis_common_remap_trace_header(SeisCommonSegy *sgy,
                 sgy->err.message = "unknown format";
                 goto error;
         }
-        if (offset + hdr_size - 1 > TRACE_HEADER_SIZE) {
+        if (offset + hdr_size - 1 > SEIS_SEGY_TRACE_HEADER_SIZE) {
                 sgy->err.code = SEIS_SEGY_ERR_BAD_PARAMS;
                 sgy->err.message = "it is impossible to write more than 240 "
                                    "bytes to trace header";
@@ -111,19 +111,19 @@ void seis_common_segy_set_text_header(SeisCommonSegy *com, size_t idx,
         assert(idx < str_arr_size(priv->text_hdrs));
         string_t tmp;
         string_init(tmp);
-        string_set_strn(tmp, hdr, TEXT_HEADER_SIZE);
+        string_set_strn(tmp, hdr, SEIS_SEGY_TEXT_HEADER_SIZE);
         str_arr_set_at(priv->text_hdrs, idx, tmp);
         string_clear(tmp);
 }
 
 void seis_common_segy_add_text_header(SeisCommonSegy *com, char const *buf) {
-        assert(strlen(buf) == TEXT_HEADER_SIZE);
+        assert(strlen(buf) == SEIS_SEGY_TEXT_HEADER_SIZE);
         SeisCommonSegyPrivate *priv = (SeisCommonSegyPrivate *)com;
         str_arr_emplace_back(priv->text_hdrs, buf);
 }
 
 void seis_common_segy_add_stanza(SeisCommonSegy *com, char const *buf) {
-        assert(strlen(buf) == TEXT_HEADER_SIZE);
+        assert(strlen(buf) == SEIS_SEGY_TEXT_HEADER_SIZE);
         SeisCommonSegyPrivate *priv = (SeisCommonSegyPrivate *)com;
         str_arr_emplace_back(priv->end_stanzas, buf);
 }
