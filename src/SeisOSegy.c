@@ -201,13 +201,13 @@ SeisSegyErrCode seis_osegy_remap_trace_header(SeisOSegy *sgy,
                                               offset, fmt);
 }
 
-void seis_osegy_add_trailer_stanza(SeisOSegy *sgy, char *buf) {
+void seis_osegy_add_trailer_stanza(SeisOSegy *sgy, char const *buf) {
         SeisCommonSegy *com = sgy->com;
         assert(strlen(buf) == TEXT_HEADER_SIZE);
         seis_common_segy_add_stanza(com, buf);
 }
 
-void seis_osegy_add_ext_text_header(SeisOSegy *sgy, char *hdr) {
+void seis_osegy_add_ext_text_header(SeisOSegy *sgy, char const *hdr) {
         SeisCommonSegy *com = sgy->com;
         assert(strlen(hdr) == TEXT_HEADER_SIZE);
         if (!seis_common_segy_get_text_headers_num(com)) {

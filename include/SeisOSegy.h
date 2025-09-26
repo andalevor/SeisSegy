@@ -78,7 +78,7 @@ SeisSegyErrCode seis_osegy_open(SeisOSegy *sgy, char const *file_name);
  * \param sgy pointer to SeisOSegy instance
  * \param hdr text header. must have 3200 chars
  */
-void seis_osegy_add_ext_text_header(SeisOSegy *sgy, char *hdr);
+void seis_osegy_add_ext_text_header(SeisOSegy *sgy, char const *hdr);
 
 /**
  * \fn seis_osegy_add_trailer_stanza
@@ -86,7 +86,7 @@ void seis_osegy_add_ext_text_header(SeisOSegy *sgy, char *hdr);
  * \param sgy pointer to SeisOSegy instance
  * \param hdr text header. must have 3200 chars
  */
-void seis_osegy_add_trailer_stanza(SeisOSegy *sgy, char *buf);
+void seis_osegy_add_trailer_stanza(SeisOSegy *sgy, char const *buf);
 
 /**
  * \fn seis_osegy_write_trace
